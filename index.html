@@ -498,6 +498,8 @@
 
                 // 3. Collision - Y Axis (Floor)
                 const footBlock = this.world.getBlock(Math.floor(this.position.x), Math.floor(this.position.y), Math.floor(this.position.z));
+                let onGround = false;
+
                 if (footBlock) {
                     const type = this.world.getBlockType(Math.floor(this.position.x), Math.floor(this.position.y), Math.floor(this.position.z));
                     if (type !== 'water') {
@@ -505,10 +507,23 @@
                         if (this.velocity.y <= 0) {
                             this.position.y = Math.floor(this.position.y) + 1;
                             this.velocity.y = 0;
-                            // INCREASED FRICTION: 0.5
+                            // Ground Friction
                             this.velocity.x *= 0.5;
                             this.velocity.z *= 0.5;
+                            onGround = true;
                         }
+                    }
+                }
+
+                if (!onGround) {
+                    if (inWater) {
+                        // Water Drag
+                        this.velocity.x *= 0.6;
+                        this.velocity.z *= 0.6;
+                    } else {
+                        // Air Friction
+                        this.velocity.x *= 0.95;
+                        this.velocity.z *= 0.95;
                     }
                 }
 
