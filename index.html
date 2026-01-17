@@ -410,7 +410,7 @@
                 this.world.scene.add(this.group);
             }
 
-            update(delta) {
+            update(delta, player) {
                 // 1. Determine State
                 const blockX = Math.floor(this.position.x);
                 const blockY = Math.floor(this.position.y);
@@ -448,7 +448,28 @@
 
                 // 4. AI / Movement
                 this.timers.move -= delta;
-                if (this.timers.move <= 0) {
+                // BAIT LOGIC
+                let attracted = false;
+                if (player && player.getHeldItem) {
+                    const held = player.getHeldItem();
+                    let interested = false;
+                    if (this.type === 'pig' && held === 'ceca_bait') interested = true;
+                    if (this.type === 'cow' && held === 'bohy_bait') interested = true;
+                    if (this.type === 'sheep' && held === 'kohoutek_bait') interested = true;
+
+                    if (interested) {
+                        const dist = this.position.distanceTo(player.camera.position);
+                        if (dist < 20) {
+                            attracted = true;
+                            const target = player.camera.position.clone();
+                            target.y = this.position.y;
+                            this.direction.subVectors(target, this.position).normalize();
+                            this.timers.move = 0.5;
+                        }
+                    }
+                }
+
+                if (!attracted && this.timers.move <= 0) {
                     this.timers.move = Math.random() * 3 + 1;
                     this.direction.set(Math.random() - 0.5, 0, Math.random() - 0.5).normalize();
                     if (Math.random() < 0.4) this.direction.set(0, 0, 0);
