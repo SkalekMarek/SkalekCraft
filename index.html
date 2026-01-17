@@ -344,11 +344,129 @@
             }
         }
 
+        class Mob {
+            constructor(world, type, textureName) {
+                this.world = world;
+                this.type = type;
+                this.position = new THREE.Vector3(0, 10, 0);
+                this.velocity = new THREE.Vector3(0, 0, 0);
+                this.timers = { move: 0 };
+                this.direction = new THREE.Vector3(Math.random() - 0.5, 0, Math.random() - 0.5).normalize();
+
+                this.group = new THREE.Group();
+
+                let bodyColor = 0xffffff;
+                if (type === 'pig') bodyColor = 0xFFC0CB;
+                if (type === 'cow') bodyColor = 0x444444;
+                if (type === 'sheep') bodyColor = 0xdddddd;
+
+                const loader = new THREE.TextureLoader();
+                const faceTex = loader.load(textureName);
+                faceTex.magFilter = THREE.NearestFilter;
+
+                const headMats = [
+                    new THREE.MeshStandardMaterial({ color: bodyColor }),
+                    new THREE.MeshStandardMaterial({ color: bodyColor }),
+                    new THREE.MeshStandardMaterial({ color: bodyColor }),
+                    new THREE.MeshStandardMaterial({ color: bodyColor }),
+                    new THREE.MeshStandardMaterial({ map: faceTex }),
+                    new THREE.MeshStandardMaterial({ color: bodyColor })
+                ];
+
+                const headGeo = new THREE.BoxGeometry(0.4, 0.4, 0.4);
+                this.head = new THREE.Mesh(headGeo, headMats);
+                this.head.position.set(0, 0.6, 0.4);
+                this.group.add(this.head);
+
+                const bodyMat = new THREE.MeshStandardMaterial({ color: bodyColor });
+                this.body = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.5, 0.9), bodyMat);
+                this.body.position.set(0, 0, -0.2);
+                this.group.add(this.body);
+
+                this.legs = [];
+                const legGeo = new THREE.BoxGeometry(0.15, 0.4, 0.15);
+                const positions = [
+                    [-0.2, -0.4, 0.1], [0.2, -0.4, 0.1],
+                    [-0.2, -0.4, -0.5], [0.2, -0.4, -0.5]
+                ];
+
+                positions.forEach(pos => {
+                    const leg = new THREE.Mesh(legGeo, bodyMat);
+                    leg.position.set(...pos);
+                    this.legs.push(leg);
+                    this.group.add(leg);
+                });
+
+                this.world.scene.add(this.group);
+            }
+
+            update(delta) {
+                const g = 30.0;
+                this.velocity.y -= g * delta;
+
+                this.timers.move -= delta;
+                if (this.timers.move <= 0) {
+                    this.timers.move = Math.random() * 3 + 1;
+                    this.direction.set(Math.random() - 0.5, 0, Math.random() - 0.5).normalize();
+                    if (Math.random() < 0.3) this.direction.set(0, 0, 0);
+                }
+
+                const speed = 2.0;
+                const move = this.direction.clone().multiplyScalar(speed * delta);
+
+                this.position.add(this.velocity.clone().multiplyScalar(delta));
+                this.position.add(move);
+
+                // Simple Floor Collision
+                const r = 0.5;
+                const minX = Math.floor(this.position.x - r);
+                const maxX = Math.floor(this.position.x + r);
+                const minZ = Math.floor(this.position.z - r);
+                const maxZ = Math.floor(this.position.z + r);
+
+                // Check if blocked horizontally
+                if (this.world.getBlock(Math.floor(this.position.x), Math.floor(this.position.y), Math.floor(this.position.z))) {
+                    // Inside block
+                    this.position.sub(move); // Undo move
+                }
+
+                // Floor
+                let groundY = -100;
+                for (let y = Math.floor(this.position.y + 1); y >= Math.floor(this.position.y - 2); y--) {
+                    if (this.world.getBlock(Math.floor(this.position.x), y, Math.floor(this.position.z))) {
+                        groundY = y + 1;
+                        break;
+                    }
+                }
+
+                if (this.position.y < groundY) {
+                    this.position.y = groundY;
+                    this.velocity.y = 0;
+                }
+
+                this.group.position.copy(this.position);
+
+                if (this.direction.length() > 0.1) {
+                    const angle = Math.atan2(this.direction.x, this.direction.z);
+                    this.group.rotation.y = angle;
+                }
+
+                const time = performance.now() / 1000;
+                if (this.direction.length() > 0.1) {
+                    this.legs[0].rotation.x = Math.sin(time * 10) * 0.5;
+                    this.legs[1].rotation.x = Math.sin(time * 10 + Math.PI) * 0.5;
+                    this.legs[2].rotation.x = Math.sin(time * 10 + Math.PI) * 0.5;
+                    this.legs[3].rotation.x = Math.sin(time * 10) * 0.5;
+                }
+            }
+        }
+
         class World {
             constructor(scene) {
                 this.scene = scene;
                 this.blocks = new Map();
-                this.cObjects = []; // Solid objects for raycasting
+                this.cObjects = [];
+                this.mobs = [];
 
                 // Materials
                 const createMat = (color) => {
@@ -399,6 +517,10 @@
 
                 // Simulation
                 setInterval(() => this.simulateWater(), 400);
+            }
+
+            updateMobs(delta) {
+                this.mobs.forEach(m => m.update(delta));
             }
 
             getBlock(x, y, z) { return this.blocks.has(`${x},${y},${z}`); }
@@ -624,6 +746,25 @@
                     }
                 }
                 this.requestWaterUpdate();
+
+                // Spawn Mobs
+                const mobTypes = [
+                    { t: 'pig', img: 'ceca.png' },
+                    { t: 'cow', img: 'bohy.png' },
+                    { t: 'sheep', img: 'kohoutek.png' }
+                ];
+
+                for (let i = 0; i < 12; i++) {
+                    const x = Math.floor((Math.random() * size) - size / 2);
+                    const z = Math.floor((Math.random() * size) - size / 2);
+                    // Find High Y
+                    let y = 10;
+                    // Raycast down logic? Just spawn high and let gravity fall
+                    const mobDef = mobTypes[i % 3];
+                    const mob = new Mob(this, mobDef.t, mobDef.img);
+                    mob.position.set(x, 20, z); // Fall from sky
+                    this.mobs.push(mob);
+                }
             }
         }
 
@@ -774,6 +915,7 @@
             prev = now;
 
             player.update(delta);
+            world.updateMobs(delta);
             renderer.render(scene, camera);
         }
         animate();
