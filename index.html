@@ -455,6 +455,26 @@
 
             update(delta, player) {
                 if (this.isDead) return;
+
+                // DEATH ANIMATION
+                if (this.dying) {
+                    this.deathTimer += delta;
+                    this.group.rotation.z = Math.min(Math.PI / 2, this.deathTimer * 3);
+                    this.velocity.y -= 30.0 * delta;
+                    this.position.y += this.velocity.y * delta;
+
+                    const footBlock = this.world.getBlock(Math.floor(this.position.x), Math.floor(this.position.y), Math.floor(this.position.z));
+                    if (footBlock && this.world.getBlockType(Math.floor(this.position.x), Math.floor(this.position.y), Math.floor(this.position.z)) !== 'water') {
+                        if (this.velocity.y < 0) this.position.y = Math.floor(this.position.y) + 1;
+                    }
+                    this.group.position.copy(this.position);
+                    if (this.deathTimer > 1.0) {
+                        this.isDead = true;
+                        this.world.scene.remove(this.group);
+                    }
+                    return;
+                }
+
                 if (this.invulnerable > 0) this.invulnerable -= delta;
 
                 // 1. Determine State
