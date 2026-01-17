@@ -358,7 +358,7 @@
             constructor(world, type, textureName) {
                 this.world = world;
                 this.type = type;
-                this.position = new THREE.Vector3(0, 10, 0);
+                this.position = new THREE.Vector3(0, 20, 0);
                 this.velocity = new THREE.Vector3(0, 0, 0);
                 this.timers = { move: 0 };
                 this.direction = new THREE.Vector3(Math.random() - 0.5, 0, Math.random() - 0.5).normalize();
@@ -379,25 +379,25 @@
                     new THREE.MeshStandardMaterial({ color: bodyColor }),
                     new THREE.MeshStandardMaterial({ color: bodyColor }),
                     new THREE.MeshStandardMaterial({ color: bodyColor }),
-                    new THREE.MeshBasicMaterial({ map: faceTex }), // FIX: Basic material to ignore lighting/shadows
+                    new THREE.MeshBasicMaterial({ map: faceTex }),
                     new THREE.MeshStandardMaterial({ color: bodyColor })
                 ];
 
                 const headGeo = new THREE.BoxGeometry(0.4, 0.4, 0.4);
                 this.head = new THREE.Mesh(headGeo, headMats);
-                this.head.position.set(0, 0.6, 0.4);
+                this.head.position.set(0, 1.2, 0.4); // Raised offset
                 this.group.add(this.head);
 
                 const bodyMat = new THREE.MeshStandardMaterial({ color: bodyColor });
                 this.body = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.5, 0.9), bodyMat);
-                this.body.position.set(0, 0, -0.2);
+                this.body.position.set(0, 0.6, -0.2); // Raised offset
                 this.group.add(this.body);
 
                 this.legs = [];
                 const legGeo = new THREE.BoxGeometry(0.15, 0.4, 0.15);
                 const positions = [
-                    [-0.2, -0.4, 0.1], [0.2, -0.4, 0.1],
-                    [-0.2, -0.4, -0.5], [0.2, -0.4, -0.5]
+                    [-0.2, 0.2, 0.1], [0.2, 0.2, 0.1], // Raised offset
+                    [-0.2, 0.2, -0.5], [0.2, 0.2, -0.5]
                 ];
 
                 positions.forEach(pos => {
@@ -411,62 +411,93 @@
             }
 
             update(delta) {
-                const g = 30.0;
-                this.velocity.y -= g * delta;
+                // 1. Determine State
+                const blockX = Math.floor(this.position.x);
+                const blockY = Math.floor(this.position.y);
+                const blockZ = Math.floor(this.position.z);
+                const inWater = this.world.getBlockType(blockX, blockY, blockZ) === 'water';
 
+                // 2. Physics - Y Axis (Gravity)
+                if (inWater) {
+                    this.velocity.y -= 5.0 * delta;
+                    if (this.velocity.y < -2) this.velocity.y = -2;
+                    this.velocity.y += 8.0 * delta; // Buoyancy
+                } else {
+                    this.velocity.y -= 30.0 * delta;
+                    if (this.velocity.y < -50) this.velocity.y = -50;
+                }
+
+                this.position.y += this.velocity.y * delta;
+
+                // 3. Collision - Y Axis (Floor)
+                const footBlock = this.world.getBlock(Math.floor(this.position.x), Math.floor(this.position.y), Math.floor(this.position.z));
+                if (footBlock) {
+                    const type = this.world.getBlockType(Math.floor(this.position.x), Math.floor(this.position.y), Math.floor(this.position.z));
+                    if (type !== 'water') {
+                        // Landed
+                        this.position.y = Math.floor(this.position.y) + 1;
+                        this.velocity.y = 0;
+                    }
+                }
+
+                // Void kill
+                if (this.position.y < -30) {
+                    this.position.set(0, 30, 0);
+                    this.velocity.set(0, 0, 0);
+                }
+
+                // 4. AI / Movement
                 this.timers.move -= delta;
                 if (this.timers.move <= 0) {
                     this.timers.move = Math.random() * 3 + 1;
                     this.direction.set(Math.random() - 0.5, 0, Math.random() - 0.5).normalize();
-                    if (Math.random() < 0.3) this.direction.set(0, 0, 0);
+                    if (Math.random() < 0.4) this.direction.set(0, 0, 0);
                 }
 
                 const speed = 2.0;
                 const move = this.direction.clone().multiplyScalar(speed * delta);
 
-                this.position.add(this.velocity.clone().multiplyScalar(delta));
-                this.position.add(move);
+                // 5. Physics - X/Z Axis (Walls)
+                this.position.x += move.x;
+                this.position.z += move.z;
 
-                // Simple Floor Collision
-                const r = 0.5;
-                const minX = Math.floor(this.position.x - r);
-                const maxX = Math.floor(this.position.x + r);
-                const minZ = Math.floor(this.position.z - r);
-                const maxZ = Math.floor(this.position.z + r);
+                const bx = Math.floor(this.position.x);
+                const by = Math.floor(this.position.y); // Feet
+                const bz = Math.floor(this.position.z);
 
-                // Check if blocked horizontally
-                if (this.world.getBlock(Math.floor(this.position.x), Math.floor(this.position.y), Math.floor(this.position.z))) {
-                    // Inside block
-                    this.position.sub(move); // Undo move
-                }
-
-                // Floor
-                let groundY = -100;
-                for (let y = Math.floor(this.position.y + 1); y >= Math.floor(this.position.y - 2); y--) {
-                    if (this.world.getBlock(Math.floor(this.position.x), y, Math.floor(this.position.z))) {
-                        groundY = y + 1;
-                        break;
+                if (this.world.getBlock(bx, by, bz)) {
+                    const t = this.world.getBlockType(bx, by, bz);
+                    if (t !== 'water') {
+                        // Hit Wall
+                        // Auto-Jump Check: Block above must be empty
+                        if (!this.world.getBlock(bx, by + 1, bz)) {
+                            this.velocity.y = 8;
+                        } else {
+                            // Blocked -> Stop
+                            this.position.x -= move.x;
+                            this.position.z -= move.z;
+                            this.timers.move = 0.5;
+                        }
                     }
                 }
 
-                if (this.position.y < groundY) {
-                    this.position.y = groundY;
-                    this.velocity.y = 0;
-                }
-
+                // Update Mesh
                 this.group.position.copy(this.position);
 
-                if (this.direction.length() > 0.1) {
+                // Rotate Mesh
+                if (this.direction.lengthSq() > 0.01) {
                     const angle = Math.atan2(this.direction.x, this.direction.z);
                     this.group.rotation.y = angle;
-                }
 
-                const time = performance.now() / 1000;
-                if (this.direction.length() > 0.1) {
-                    this.legs[0].rotation.x = Math.sin(time * 10) * 0.5;
-                    this.legs[1].rotation.x = Math.sin(time * 10 + Math.PI) * 0.5;
-                    this.legs[2].rotation.x = Math.sin(time * 10 + Math.PI) * 0.5;
-                    this.legs[3].rotation.x = Math.sin(time * 10) * 0.5;
+                    // Walk Anim
+                    const time = performance.now() / 1000;
+                    const legSpeed = 10;
+                    this.legs[0].rotation.x = Math.sin(time * legSpeed) * 0.5;
+                    this.legs[1].rotation.x = Math.sin(time * legSpeed + Math.PI) * 0.5;
+                    this.legs[2].rotation.x = Math.sin(time * legSpeed + Math.PI) * 0.5;
+                    this.legs[3].rotation.x = Math.sin(time * legSpeed) * 0.5;
+                } else {
+                    this.legs.forEach(l => l.rotation.x = 0);
                 }
             }
         }
