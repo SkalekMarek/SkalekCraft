@@ -461,9 +461,13 @@
                         const dist = this.position.distanceTo(player.camera.position);
                         if (dist < 20) {
                             attracted = true;
-                            const target = player.camera.position.clone();
-                            target.y = this.position.y;
-                            this.direction.subVectors(target, this.position).normalize();
+                            if (dist > 3.0) {
+                                const target = player.camera.position.clone();
+                                target.y = this.position.y;
+                                this.direction.subVectors(target, this.position).normalize();
+                            } else {
+                                this.direction.set(0, 0, 0);
+                            }
                             this.timers.move = 0.5;
                         }
                     }
