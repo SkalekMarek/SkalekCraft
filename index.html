@@ -553,7 +553,9 @@
 
                 // KNOCKBACK OVERRIDE
                 let move = new THREE.Vector3();
-                if (Math.abs(this.velocity.x) > 1 || Math.abs(this.velocity.z) > 1) {
+                const isKnockback = (Math.abs(this.velocity.x) > 1 || Math.abs(this.velocity.z) > 1);
+
+                if (isKnockback) {
                     move.x = this.velocity.x * delta;
                     move.z = this.velocity.z * delta;
                 } else {
@@ -573,14 +575,22 @@
                     const t = this.world.getBlockType(bx, by, bz);
                     if (t !== 'water') {
                         // Hit Wall
-                        // Auto-Jump Check: Block above must be empty
-                        if (!this.world.getBlock(bx, by + 1, bz)) {
+
+                        // Auto-Jump Check: Only if NOT in knockback
+                        // If knockback, just collide/slide
+                        if (!isKnockback && !this.world.getBlock(bx, by + 1, bz)) {
                             this.velocity.y = 8;
                         } else {
                             // Blocked -> Stop
                             this.position.x -= move.x;
                             this.position.z -= move.z;
                             this.timers.move = 0.5;
+
+                            // If knockback hit wall, kill velocity to stop trying to move
+                            if (isKnockback) {
+                                this.velocity.x = 0;
+                                this.velocity.z = 0;
+                            }
                         }
                     }
                 }
