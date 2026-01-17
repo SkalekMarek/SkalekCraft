@@ -587,6 +587,7 @@
 
             updateMobs(delta, player) {
                 this.mobs.forEach(m => m.update(delta, player));
+                this.mobs = this.mobs.filter(m => !m.isDead);
             }
             // ... (getBlock/placeBlock methods) ...
 
