@@ -937,20 +937,47 @@
 
             raycaster.setFromCamera(center, camera);
             let hit = null;
-            const intersects = raycaster.intersectObjects(world.cObjects); // Solid
+            let targetType = 'none';
 
-            if (intersects.length > 0) hit = intersects[0];
+            // 1. Check Blocks
+            const blockIntersects = raycaster.intersectObjects(world.cObjects);
+            if (blockIntersects.length > 0) {
+                hit = blockIntersects[0];
+                targetType = 'block';
+            }
 
-            // Water Raycast Check
+            // 2. Check Water
             if (world.waterMesh) {
                 const wHits = raycaster.intersectObject(world.waterMesh);
                 if (wHits.length > 0) {
-                    if (!hit || wHits[0].distance < hit.distance) hit = wHits[0];
+                    if (!hit || wHits[0].distance < hit.distance) {
+                        hit = wHits[0];
+                        targetType = 'water';
+                    }
+                }
+            }
+
+            // 3. Check Mobs
+            const mobMeshes = world.mobs.map(m => m.group);
+            const mobHits = raycaster.intersectObjects(mobMeshes, true);
+            if (mobHits.length > 0) {
+                if (!hit || mobHits[0].distance < hit.distance) {
+                    hit = mobHits[0];
+                    targetType = 'mob';
                 }
             }
 
             if (hit && hit.distance < 6) {
-                const isWaterHit = (hit.object === world.waterMesh || hit.object === world.waterSurfaceMesh || hit.object === world.waterSideMesh);
+                if (targetType === 'mob') {
+                    if (e.button === 0) {
+                        let obj = hit.object;
+                        while (obj.parent && !obj.userData.mob) obj = obj.parent;
+                        if (obj.userData.mob) obj.userData.mob.takeDamage(player.camera.position);
+                    }
+                    return;
+                }
+
+                const isWaterHit = (targetType === 'water');
 
                 if (e.button === 0) {
                     // Break
@@ -970,10 +997,9 @@
                         const bz = Math.floor(pos2.z);
 
                         // SAFETY CHECK: AABB Collision
-                        // Player Box
                         const pPos = player.camera.position;
-                        const r = 0.3; // matches collision radius
-                        const h = player.currentHeight; // dynamic height
+                        const r = 0.3;
+                        const h = player.currentHeight;
 
                         const pMinX = pPos.x - r;
                         const pMaxX = pPos.x + r;
@@ -982,7 +1008,6 @@
                         const pMinZ = pPos.z - r;
                         const pMaxZ = pPos.z + r;
 
-                        // Block Box
                         const bMinX = bx;
                         const bMaxX = bx + 1;
                         const bMinY = by;
@@ -990,7 +1015,6 @@
                         const bMinZ = bz;
                         const bMaxZ = bz + 1;
 
-                        // Check Overlap
                         const overlapX = (pMinX < bMaxX && pMaxX > bMinX);
                         const overlapY = (pMinY < bMaxY && pMaxY > bMinY);
                         const overlapZ = (pMinZ < bMaxZ && pMaxZ > bMinZ);
