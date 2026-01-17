@@ -859,59 +859,55 @@
         window.addEventListener('mousedown', (e) => {
             if (!player.controls.isLocked) return;
             raycaster.setFromCamera(center, camera);
-            const intersects = raycaster.intersectObjects(world.cObjects); // Solid only
-
-            // Check for water Raycast? (Harder with merged mesh)
-            // If the user wants to pick water, we need to raycast the waterMesh too
             let hit = null;
+            const intersects = raycaster.intersectObjects(world.cObjects); // Solid
+
             if (intersects.length > 0) hit = intersects[0];
 
-            // Try water raycast
+            // Water Raycast Check
             if (world.waterMesh) {
-                const waterHit = raycaster.intersectObject(world.waterMesh);
-                if (waterHit.length > 0) {
-                    if (!hit || waterHit[0].distance < hit.distance) {
-                        hit = waterHit[0];
-                        // Adjust hit for water? Water mesh gives us point on face.
-                        // We need integer coords.
-                        // But for now, let's prioritize solid blocks for building
-                    }
+                const wHits = raycaster.intersectObject(world.waterMesh);
+                // Simple Distance Check
+                if (wHits.length > 0) {
+                    if (!hit || wHits[0].distance < hit.distance) hit = wHits[0];
                 }
             }
 
             if (hit && hit.distance < 6) {
-                const norm = hit.face.normal;
-                let pos = hit.point.clone().sub(norm.clone().multiplyScalar(0.1)); // Inside block
-                let xb = Math.floor(pos.x), yb = Math.floor(pos.y), zb = Math.floor(pos.z);
-
-                // If it's solid mesh, we can use object.position logic (or not, sticking to math)
-                if (hit.object === world.waterMesh) {
-                    // logic for water
-                } else {
-                    // logic for solid
-                    pos = hit.object.position;
-                    xb = pos.x; yb = pos.y; zb = pos.z;
-                }
+                const isWaterHit = (hit.object === world.waterMesh || hit.object === world.waterSurfaceMesh || hit.object === world.waterSideMesh);
 
                 if (e.button === 0) {
                     // Break
-                    // If we hit water, we can't break it easily with this logic unless we trace exact block
-                    // Simplification: Can only break solid blocks for now
-                    world.removeBlock(hit.object);
-                    // If we hit water mesh?
-                    if (hit.object === world.waterMesh) {
-                        // Need precise coordinate
-                        // Move slightly in
+                    if (isWaterHit) {
                         const p = hit.point.clone().add(raycaster.ray.direction.clone().multiplyScalar(0.1));
                         world.removeBlockAt(Math.floor(p.x), Math.floor(p.y), Math.floor(p.z));
+                    } else {
+                        // Break solid
+                        world.removeBlock(hit.object);
                     }
                 } else if (e.button === 2) {
                     // Place
-                    // If hit solid, place adjacent
-                    if (hit.object !== world.waterMesh) {
+                    if (!isWaterHit) {
+                        const norm = hit.face.normal;
                         const pos2 = hit.object.position.clone().add(norm);
+                        const bx = Math.floor(pos2.x);
+                        const by = Math.floor(pos2.y);
+                        const bz = Math.floor(pos2.z);
+
+                        // SAFETY CHECK: Do not place inside player
+                        const pPos = player.camera.position;
+                        const pX = Math.floor(pPos.x);
+                        const pZ = Math.floor(pPos.z);
+                        const pYHead = Math.floor(pPos.y);
+                        const pYFeet = Math.floor(pPos.y - 1.0);
+
+                        // Check overlap
+                        if (bx === pX && bz === pZ && (by === pYHead || by === pYFeet)) {
+                            return; // Blocked by player
+                        }
+
                         const type = types[selectedIndex] || 'stone';
-                        world.placeBlock(Math.floor(pos2.x), Math.floor(pos2.y), Math.floor(pos2.z), type);
+                        world.placeBlock(bx, by, bz, type);
                     }
                 }
             }
