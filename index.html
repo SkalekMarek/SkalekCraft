@@ -836,17 +836,30 @@
         const player = new Player(camera, document.body, world);
 
         // UI
+        // UI
         const hotbar = document.getElementById('hotbar');
-        const types = ['grass', 'dirt', 'stone', 'wood', 'leaves', 'sand', 'water'];
+        const types = ['grass', 'dirt', 'stone', 'wood', 'water', 'bedrock', 'bohy_bait', 'ceca_bait', 'kohoutek_bait'];
         let selectedIndex = 0;
+
+        // Player helper
+        player.getHeldItem = function () {
+            return types[selectedIndex];
+        };
 
         for (let i = 0; i < 9; i++) {
             const div = document.createElement('div');
             div.className = 'slot' + (i === 0 ? ' active' : '');
+
             if (i < types.length) {
-                div.style.backgroundColor = getComputedStyleColor(types[i]);
-                div.dataset.type = types[i];
+                const t = types[i];
+                if (t.includes('bait')) {
+                    div.style.background = `url('${t.replace('_', '')}.jpg') no-repeat center/cover`;
+                } else {
+                    div.style.backgroundColor = getComputedStyleColor(t);
+                }
+                div.dataset.type = t;
             }
+
             const num = document.createElement('div');
             num.className = 'slot-number';
             num.innerText = i + 1;
@@ -862,6 +875,7 @@
             if (type === 'leaves') return '#2E8B57';
             if (type === 'sand') return '#F4A460';
             if (type === 'water') return '#244F99';
+            if (type === 'bedrock') return '#111';
             return '#333';
         }
 
@@ -891,6 +905,10 @@
 
         window.addEventListener('mousedown', (e) => {
             if (!player.controls.isLocked) return;
+
+            const heldContext = types[selectedIndex];
+            if (heldContext && heldContext.includes('bait')) return;
+
             raycaster.setFromCamera(center, camera);
             let hit = null;
             const intersects = raycaster.intersectObjects(world.cObjects); // Solid
@@ -970,7 +988,7 @@
             prev = now;
 
             player.update(delta);
-            world.updateMobs(delta);
+            world.updateMobs(delta, player);
             renderer.render(scene, camera);
         }
         animate();
