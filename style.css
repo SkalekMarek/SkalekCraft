@@ -1,0 +1,8 @@
+body {
+    margin: 0;
+    overflow: hidden;
+    background-color: #87CEEB; /* Sky blue fallback */
+}
+canvas {
+    display: block;
+}
