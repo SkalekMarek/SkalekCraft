@@ -434,6 +434,7 @@
                 if (this.health <= 0) {
                     this.dying = true;
                     this.invulnerable = 1000; // No more hits
+                    new Audio('died.mp3').play();
                 } else {
                     setTimeout(() => this.restoreColor(), 100);
                 }
