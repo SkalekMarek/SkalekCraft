@@ -450,6 +450,9 @@
             }
 
             update(delta, player) {
+                if (this.isDead) return;
+                if (this.invulnerable > 0) this.invulnerable -= delta;
+
                 // 1. Determine State
                 const blockX = Math.floor(this.position.x);
                 const blockY = Math.floor(this.position.y);
@@ -518,8 +521,15 @@
                     if (Math.random() < 0.4) this.direction.set(0, 0, 0);
                 }
 
-                const speed = 2.0;
-                const move = this.direction.clone().multiplyScalar(speed * delta);
+                // KNOCKBACK OVERRIDE
+                let move = new THREE.Vector3();
+                if (Math.abs(this.velocity.x) > 1 || Math.abs(this.velocity.z) > 1) {
+                    move.x = this.velocity.x * delta;
+                    move.z = this.velocity.z * delta;
+                } else {
+                    const speed = 2.0;
+                    move = this.direction.clone().multiplyScalar(speed * delta);
+                }
 
                 // 5. Physics - X/Z Axis (Walls)
                 this.position.x += move.x;
