@@ -898,7 +898,6 @@
             // Water Raycast Check
             if (world.waterMesh) {
                 const wHits = raycaster.intersectObject(world.waterMesh);
-                // Simple Distance Check
                 if (wHits.length > 0) {
                     if (!hit || wHits[0].distance < hit.distance) hit = wHits[0];
                 }
@@ -913,7 +912,6 @@
                         const p = hit.point.clone().add(raycaster.ray.direction.clone().multiplyScalar(0.1));
                         world.removeBlockAt(Math.floor(p.x), Math.floor(p.y), Math.floor(p.z));
                     } else {
-                        // Break solid
                         world.removeBlock(hit.object);
                     }
                 } else if (e.button === 2) {
@@ -925,15 +923,33 @@
                         const by = Math.floor(pos2.y);
                         const bz = Math.floor(pos2.z);
 
-                        // SAFETY CHECK: Do not place inside player
+                        // SAFETY CHECK: AABB Collision
+                        // Player Box
                         const pPos = player.camera.position;
-                        const pX = Math.floor(pPos.x);
-                        const pZ = Math.floor(pPos.z);
-                        const pYHead = Math.floor(pPos.y);
-                        const pYFeet = Math.floor(pPos.y - 1.0);
+                        const r = 0.3; // matches collision radius
+                        const h = player.currentHeight; // dynamic height
 
-                        // Check overlap
-                        if (bx === pX && bz === pZ && (by === pYHead || by === pYFeet)) {
+                        const pMinX = pPos.x - r;
+                        const pMaxX = pPos.x + r;
+                        const pMinY = pPos.y - h;
+                        const pMaxY = pPos.y;
+                        const pMinZ = pPos.z - r;
+                        const pMaxZ = pPos.z + r;
+
+                        // Block Box
+                        const bMinX = bx;
+                        const bMaxX = bx + 1;
+                        const bMinY = by;
+                        const bMaxY = by + 1;
+                        const bMinZ = bz;
+                        const bMaxZ = bz + 1;
+
+                        // Check Overlap
+                        const overlapX = (pMinX < bMaxX && pMaxX > bMinX);
+                        const overlapY = (pMinY < bMaxY && pMaxY > bMinY);
+                        const overlapZ = (pMinZ < bMaxZ && pMaxZ > bMinZ);
+
+                        if (overlapX && overlapY && overlapZ) {
                             return; // Blocked by player
                         }
 
