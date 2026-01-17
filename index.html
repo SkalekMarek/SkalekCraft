@@ -358,17 +358,23 @@
             constructor(world, type, textureName) {
                 this.world = world;
                 this.type = type;
+                this.health = 3;
+                this.isDead = false;
+                this.invulnerable = 0;
+
                 this.position = new THREE.Vector3(0, 20, 0);
                 this.velocity = new THREE.Vector3(0, 0, 0);
                 this.timers = { move: 0 };
                 this.direction = new THREE.Vector3(Math.random() - 0.5, 0, Math.random() - 0.5).normalize();
 
                 this.group = new THREE.Group();
+                this.group.userData = { mob: this };
 
                 let bodyColor = 0xffffff;
                 if (type === 'pig') bodyColor = 0xFFC0CB;
                 if (type === 'cow') bodyColor = 0x444444;
                 if (type === 'sheep') bodyColor = 0xdddddd;
+                this.bodyColor = bodyColor;
 
                 const loader = new THREE.TextureLoader();
                 const faceTex = loader.load(textureName);
@@ -401,13 +407,46 @@
                 ];
 
                 positions.forEach(pos => {
-                    const leg = new THREE.Mesh(legGeo, bodyMat);
+                    const leg = new THREE.Mesh(legGeo, bodyMat.clone());
                     leg.position.set(...pos);
                     this.legs.push(leg);
                     this.group.add(leg);
                 });
 
                 this.world.scene.add(this.group);
+            }
+
+            takeDamage(attackerPos) {
+                if (this.invulnerable > 0) return;
+                this.health--;
+                this.invulnerable = 0.5;
+
+                // Knockback
+                const dir = this.position.clone().sub(attackerPos).normalize();
+                dir.y = 0.5; // Lift up
+                this.velocity.add(dir.multiplyScalar(15));
+
+                // Visual Feedback (Flash Red)
+                this.flashColor(0xff0000);
+                setTimeout(() => this.restoreColor(), 100);
+
+                if (this.health <= 0) {
+                    this.isDead = true;
+                    this.world.scene.remove(this.group);
+                }
+            }
+
+            flashColor(colorHex) {
+                this.head.material.forEach(m => { if (m.map === null) m.color.setHex(colorHex); });
+                this.body.material.color.setHex(colorHex);
+                this.legs.forEach(l => l.material.color.setHex(colorHex));
+            }
+
+            restoreColor() {
+                const c = this.bodyColor;
+                this.head.material.forEach(m => { if (m.map === null) m.color.setHex(c); });
+                this.body.material.color.setHex(c);
+                this.legs.forEach(l => l.material.color.setHex(c));
             }
 
             update(delta, player) {
