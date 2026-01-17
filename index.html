@@ -132,12 +132,13 @@
                 this.direction = new THREE.Vector3();
                 this.input = { forward: false, backward: false, left: false, right: false, sprint: false, jump: false, down: false, crouch: false };
                 this.canJump = false;
-                this.isSwimming = false; // Physics (Feet/Body)
-                this.headSubmerged = false; // Visuals (Eyes)
+                this.isSwimming = false;
+                this.headSubmerged = false;
 
                 this.defaultHeight = 1.6;
                 this.crouchHeight = 1.0;
                 this.currentHeight = 1.6;
+                this.wasCrouching = false;
 
                 this.setupInputs();
             }
@@ -155,7 +156,7 @@
                             break;
                         case 'ShiftLeft': case 'ShiftRight':
                             this.input.sprint = true;
-                            this.input.down = true; // For sinking in water
+                            this.input.down = true;
                             break;
                         case 'ControlLeft': case 'KeyC':
                             this.input.crouch = true;
@@ -187,6 +188,15 @@
 
             update(delta) {
                 if (!this.controls.isLocked) return;
+
+                // Handle Un-Crouch Physics (Prevent getting stuck in floor)
+                if (this.input.crouch !== this.wasCrouching) {
+                    if (!this.input.crouch) {
+                        // Standing up: Move camera UP so feet stay on ground
+                        this.camera.position.y += (this.defaultHeight - this.crouchHeight);
+                    }
+                    this.wasCrouching = this.input.crouch;
+                }
 
                 // Check Environment
                 this.checkIfInWater();
