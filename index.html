@@ -369,7 +369,7 @@
                     new THREE.MeshStandardMaterial({ color: bodyColor }),
                     new THREE.MeshStandardMaterial({ color: bodyColor }),
                     new THREE.MeshStandardMaterial({ color: bodyColor }),
-                    new THREE.MeshStandardMaterial({ map: faceTex }),
+                    new THREE.MeshBasicMaterial({ map: faceTex }), // FIX: Basic material to ignore lighting/shadows
                     new THREE.MeshStandardMaterial({ color: bodyColor })
                 ];
 
