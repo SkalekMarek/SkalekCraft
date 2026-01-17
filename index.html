@@ -982,7 +982,8 @@
             if (!player.controls.isLocked) return;
 
             const heldContext = types[selectedIndex];
-            if (heldContext && heldContext.includes('bait')) return;
+
+            // REMOVED early return for bait. We handle it in placement logic.
 
             raycaster.setFromCamera(center, camera);
             let hit = null;
@@ -1018,18 +1019,22 @@
 
             if (hit && hit.distance < 6) {
                 if (targetType === 'mob') {
-                    if (e.button === 0) {
+                    if (e.button === 0) { // Left Click
                         let obj = hit.object;
+                        // Traverse up to find Mob instance
                         while (obj.parent && !obj.userData.mob) obj = obj.parent;
-                        if (obj.userData.mob) obj.userData.mob.takeDamage(player.camera.position);
+
+                        if (obj.userData && obj.userData.mob) {
+                            obj.userData.mob.takeDamage(player.camera.position);
+                        }
                     }
-                    return;
+                    return; // Don't do block interactions if targeting a mob
                 }
 
                 const isWaterHit = (targetType === 'water');
 
                 if (e.button === 0) {
-                    // Break
+                    // Break Block (Left Click)
                     if (isWaterHit) {
                         const p = hit.point.clone().add(raycaster.ray.direction.clone().multiplyScalar(0.1));
                         world.removeBlockAt(Math.floor(p.x), Math.floor(p.y), Math.floor(p.z));
@@ -1037,7 +1042,11 @@
                         world.removeBlock(hit.object);
                     }
                 } else if (e.button === 2) {
-                    // Place
+                    // Place Block (Right Click)
+
+                    // BAIT CHECK: Prevent placing bait as a block
+                    if (heldContext && heldContext.includes('bait')) return;
+
                     if (!isWaterHit) {
                         const norm = hit.face.normal;
                         const pos2 = hit.object.position.clone().add(norm);
