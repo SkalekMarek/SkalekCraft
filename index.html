@@ -501,8 +501,13 @@
                     const type = this.world.getBlockType(Math.floor(this.position.x), Math.floor(this.position.y), Math.floor(this.position.z));
                     if (type !== 'water') {
                         // Landed
-                        this.position.y = Math.floor(this.position.y) + 1;
-                        this.velocity.y = 0;
+                        if (this.velocity.y <= 0) {
+                            this.position.y = Math.floor(this.position.y) + 1;
+                            this.velocity.y = 0;
+                            // INCREASED FRICTION: 0.5
+                            this.velocity.x *= 0.5;
+                            this.velocity.z *= 0.5;
+                        }
                     }
                 }
 
