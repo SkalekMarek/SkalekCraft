@@ -360,6 +360,8 @@
                 this.type = type;
                 this.health = 3;
                 this.isDead = false;
+                this.dying = false;
+                this.deathTimer = 0;
                 this.invulnerable = 0;
 
                 this.position = new THREE.Vector3(0, 20, 0);
@@ -417,7 +419,7 @@
             }
 
             takeDamage(attackerPos) {
-                if (this.invulnerable > 0) return;
+                if (this.invulnerable > 0 || this.dying) return;
                 this.health--;
                 this.invulnerable = 0.5;
 
@@ -428,11 +430,12 @@
 
                 // Visual Feedback (Flash Red)
                 this.flashColor(0xff0000);
-                setTimeout(() => this.restoreColor(), 100);
 
                 if (this.health <= 0) {
-                    this.isDead = true;
-                    this.world.scene.remove(this.group);
+                    this.dying = true;
+                    this.invulnerable = 1000; // No more hits
+                } else {
+                    setTimeout(() => this.restoreColor(), 100);
                 }
             }
 
@@ -443,6 +446,7 @@
             }
 
             restoreColor() {
+                if (this.dying) return;
                 const c = this.bodyColor;
                 this.head.material.forEach(m => { if (m.map === null) m.color.setHex(c); });
                 this.body.material.color.setHex(c);
