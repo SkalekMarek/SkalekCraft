@@ -40,8 +40,13 @@ export class World {
             }),
             stone: new THREE.MeshStandardMaterial({ map: createTexture('#757575') }),
             dirt: new THREE.MeshStandardMaterial({ map: createTexture('#5D4037') }),
-            wood: new THREE.MeshStandardMaterial({ map: createTexture('#4E342E') }),
-            leaves: new THREE.MeshStandardMaterial({ map: createTexture('#388E3C'), transparent: true }),
+            wood: new THREE.MeshStandardMaterial({ map: loadTexture('wood.png') }),
+            leaves: new THREE.MeshStandardMaterial({
+                map: loadTexture('leaves.png'),
+                transparent: true,
+                alphaTest: 0.5,
+                side: THREE.DoubleSide
+            }),
             sand: new THREE.MeshStandardMaterial({ map: createTexture('#F4A460') }),
             bedrock: new THREE.MeshStandardMaterial({ map: createTexture('#1a1a1a') }),
             water: new THREE.MeshStandardMaterial({ // Instanced water for simple check, though custom mesh system handles rendering
