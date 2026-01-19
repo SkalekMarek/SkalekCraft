@@ -13,6 +13,7 @@ export class Mob {
         // Visuals
         this.group = new THREE.Group();
         this.group.position.copy(this.position);
+        this.group.scale.set(0.7, 0.7, 0.7); // 70% size
         this.scene.add(this.group);
 
         this.createModel(type);
@@ -133,8 +134,8 @@ export class Mob {
 
     handleCollisions(axis) {
         // Simple bounding box check against world blocks
-        const width = 0.6;
-        const height = 1.4; // Pig height approx
+        const width = 0.6 * 0.7; // ~0.42
+        const height = 1.4 * 0.7; // ~0.98
 
         const minX = Math.floor(this.position.x - width / 2);
         const maxX = Math.floor(this.position.x + width / 2);

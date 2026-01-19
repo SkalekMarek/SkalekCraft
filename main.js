@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { World } from './World.js?v=8';
 import { Player } from './Player.js';
-import { Mob } from './Mob.js?v=9';
+import { Mob } from './Mob.js?v=10';
 
 
 // --- INIT ---
