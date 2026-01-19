@@ -8,6 +8,14 @@ export class World {
         this.startTime = performance.now();
 
         // Materials
+        const textureLoader = new THREE.TextureLoader();
+        const loadTexture = (path) => {
+            const t = textureLoader.load(path);
+            t.magFilter = THREE.NearestFilter;
+            t.colorSpace = THREE.SRGBColorSpace;
+            return t;
+        };
+
         const createTexture = (color) => {
             const canvas = document.createElement('canvas');
             canvas.width = 64; canvas.height = 64;
@@ -21,11 +29,15 @@ export class World {
             }
             const t = new THREE.CanvasTexture(canvas);
             t.magFilter = THREE.NearestFilter;
+            t.colorSpace = THREE.SRGBColorSpace;
             return t;
         };
 
         const materials = {
-            grass: new THREE.MeshStandardMaterial({ map: createTexture('#5C9E38') }),
+            grass: new THREE.MeshStandardMaterial({
+                map: loadTexture('grass.png'),
+                color: 0x79C05A // Applied "colourmap" green tint
+            }),
             stone: new THREE.MeshStandardMaterial({ map: createTexture('#757575') }),
             dirt: new THREE.MeshStandardMaterial({ map: createTexture('#5D4037') }),
             wood: new THREE.MeshStandardMaterial({ map: createTexture('#4E342E') }),
