@@ -1,9 +1,11 @@
 import * as THREE from 'three';
+import { Mob } from './Mob.js';
 
 export class World {
     constructor(scene) {
         this.scene = scene;
         this.blocks = new Map(); // "x,y,z" -> { type, instanceId }
+        this.mobs = []; // Active mobs
         this.startTime = performance.now();
 
         // Materials
@@ -343,5 +345,21 @@ export class World {
 
     simulateWater() {
         // Placeholder for future water physics
+    }
+
+    spawnMob(x, y, z, type) {
+        const mob = new Mob(this, x, y, z, type);
+        this.mobs.push(mob);
+        return mob;
+    }
+
+    updateMobs(delta, player) {
+        for (let i = this.mobs.length - 1; i >= 0; i--) {
+            const mob = this.mobs[i];
+            mob.update(delta, player);
+            if (mob.isDead) {
+                this.mobs.splice(i, 1);
+            }
+        }
     }
 }

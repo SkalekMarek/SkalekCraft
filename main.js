@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { World } from './World.js';
 import { Player } from './Player.js';
+import { Mob } from './Mob.js';
 
 // --- INIT ---
 const scene = new THREE.Scene();
@@ -56,7 +57,8 @@ function updateHotbar() {
     });
 }
 // Init icons
-const types = ['grass', 'stone', 'dirt', 'wood', 'leaves', 'sand', 'bedrock', 'stone', 'wood'];
+// Init icons
+const types = ['grass', 'stone', 'dirt', 'wood', 'leaves', 'sand', 'bohybait', 'cecabait', 'kohoutekbait'];
 slots.forEach((s, i) => {
     if (types[i]) {
         // Simple color approximation for icon
@@ -68,7 +70,15 @@ slots.forEach((s, i) => {
         if (types[i] === 'leaves') color = '#388E3C';
         if (types[i] === 'sand') color = '#F4A460';
         if (types[i] === 'bedrock') color = '#1a1a1a';
-        s.style.backgroundColor = color;
+
+        // Bait Colors / Images
+        if (types[i].includes('bait')) {
+            s.style.backgroundColor = 'transparent';
+            s.style.backgroundImage = `url(${types[i]}.jpg)`;
+            s.style.backgroundSize = 'cover';
+        } else {
+            s.style.backgroundColor = color;
+        }
     }
 });
 
@@ -103,7 +113,7 @@ window.addEventListener('mousedown', (e) => {
                 world.removeBlock(hit.object);
                 if (typeof sendBlock === 'function') sendBlock({ action: 'remove', x, y, z });
             }
-        } else if (e.button === 2) { // Right Click - Place
+        } else if (e.button === 2) { // Right Click - Place / Spawn
             const norm = hit.face.normal;
             let pos;
 
@@ -127,8 +137,30 @@ window.addEventListener('mousedown', (e) => {
             const by = Math.floor(pos.y);
             const bz = Math.floor(pos.z);
 
+            // Check if it's a bait (Spawn Mob behavior)
+            if (type.includes('bait')) {
+                const mobType = type.replace('bait', '');
+                world.spawnMob(bx + 0.5, by, bz + 0.5, mobType);
+                // Also send network event for mob spawn? Not requested yet, keeping local first or basic sync?
+                // User didn't explicitly ask for multiplayer mobs, so keeping local for now.
+                return;
+            }
+
             world.placeBlock(bx, by, bz, type);
             if (typeof sendBlock === 'function') sendBlock({ action: 'place', x: bx, y: by, z: bz, type: type });
+        }
+        else if (e.button === 1) { // Middle Click - Attack Mob (Raycast separately or check objects)
+            // Handled below for Mob Interaction
+        }
+    }
+
+    // Mob Interaction (Left Click)
+    const mobIntersects = raycaster.intersectObjects(world.mobs.map(m => m.mesh));
+    if (mobIntersects.length > 0 && mobIntersects[0].distance < 6 && e.button === 0) {
+        const hitMesh = mobIntersects[0].object;
+        const mob = world.mobs.find(m => m.mesh === hitMesh);
+        if (mob) {
+            mob.takeDamage();
         }
     }
 });
@@ -242,6 +274,7 @@ function animate() {
     prevTime = time;
 
     player.update(delta);
+    world.updateMobs(delta, player);
 
     // Broadcast Position
     if (time - lastBroadcast > broadcastRate) {
