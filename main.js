@@ -25,7 +25,7 @@ scene.add(dirLight);
 
 // --- GAME OBJECTS ---
 const world = new World(scene);
-world.generateSimple(16); // 32x32 area
+world.generateSimple(40); // Increased Size
 
 const player = new Player(camera, document.body, world);
 
@@ -56,7 +56,7 @@ function updateHotbar() {
     });
 }
 // Init icons
-const types = ['grass', 'stone', 'dirt', 'wood', 'leaves', 'stone', 'grass', 'dirt', 'wood'];
+const types = ['grass', 'stone', 'dirt', 'wood', 'leaves', 'sand', 'bedrock', 'stone', 'wood'];
 slots.forEach((s, i) => {
     if (types[i]) {
         // Simple color approximation for icon
@@ -66,6 +66,8 @@ slots.forEach((s, i) => {
         if (types[i] === 'dirt') color = '#5D4037';
         if (types[i] === 'wood') color = '#4E342E';
         if (types[i] === 'leaves') color = '#388E3C';
+        if (types[i] === 'sand') color = '#F4A460';
+        if (types[i] === 'bedrock') color = '#1a1a1a';
         s.style.backgroundColor = color;
     }
 });
@@ -76,38 +78,57 @@ window.addEventListener('mousedown', (e) => {
     if (!player.controls.isLocked) return;
 
     raycaster.setFromCamera(mouse, camera);
-    const intersects = raycaster.intersectObjects(world.objects); // Expensive optimization needed later
+    const intersects = raycaster.intersectObjects(world.objects);
 
     if (intersects.length > 0 && intersects[0].distance < 6) {
         const hit = intersects[0];
 
         if (e.button === 0) { // Left Click - Break
-            const obj = hit.object;
-            if (obj.userData && obj.userData.type) {
-                const { x, y, z } = obj.userData;
-                world.removeBlock(obj);
-                socket.emit('blockUpdate', { action: 'remove', x, y, z });
+            if (hit.object.isInstancedMesh) {
+                world.removeBlock(hit.object, hit.instanceId);
+
+                // Recover coords from matrix for network
+                const matrix = new THREE.Matrix4();
+                hit.object.getMatrixAt(hit.instanceId, matrix);
+                const pos = new THREE.Vector3().setFromMatrixPosition(matrix);
+                const x = Math.floor(pos.x);
+                const y = Math.floor(pos.y);
+                const z = Math.floor(pos.z);
+
+                if (typeof sendBlock === 'function') sendBlock({ action: 'remove', x, y, z });
+
+            } else if (hit.object.userData && hit.object.userData.type) {
+                // Fallback for non-instanced objects (like old water meshes if clickable)
+                const { x, y, z } = hit.object.userData;
+                world.removeBlock(hit.object);
+                if (typeof sendBlock === 'function') sendBlock({ action: 'remove', x, y, z });
             }
         } else if (e.button === 2) { // Right Click - Place
-            // Calculate new position
             const norm = hit.face.normal;
-            const pos = hit.object.position.clone().add(norm);
+            let pos;
+
+            if (hit.object.isInstancedMesh) {
+                const matrix = new THREE.Matrix4();
+                hit.object.getMatrixAt(hit.instanceId, matrix);
+                pos = new THREE.Vector3().setFromMatrixPosition(matrix).add(norm);
+            } else {
+                pos = hit.object.position.clone().add(norm);
+            }
 
             // Don't place inside player
             const pPos = camera.position;
             const dx = Math.abs(pos.x - pPos.x);
             const dy = Math.abs(pos.y - pPos.y);
             const dz = Math.abs(pos.z - pPos.z);
-            if (dx < 0.8 && dy < 1.8 && dz < 0.8) return; // Simple safety check
+            if (dx < 0.8 && dy < 1.8 && dz < 0.8) return;
 
-            // Determine type from hotbar (mock)
             const type = types[selectedSlot] || 'stone';
             const bx = Math.floor(pos.x);
             const by = Math.floor(pos.y);
             const bz = Math.floor(pos.z);
 
             world.placeBlock(bx, by, bz, type);
-            socket.emit('blockUpdate', { action: 'place', x: bx, y: by, z: bz, type: type });
+            if (typeof sendBlock === 'function') sendBlock({ action: 'place', x: bx, y: by, z: bz, type: type });
         }
     }
 });
@@ -135,17 +156,16 @@ const [sendBlock, getBlock] = room.makeAction('block');
 
 const remotePlayers = {};
 
-function updatePlayerCount() {
+function updatePlayerCount(statusOverride) {
     const count = Object.keys(remotePlayers).length + 1;
-    document.getElementById('player-count').innerText = `Players: ${count} (Connected)`;
+    document.getElementById('player-count').innerText = `Players: ${count}`;
 }
 
 // 1. Peer Management
 room.onPeerJoin(peerId => {
     console.log(`${peerId} joined`);
     addRemotePlayer(peerId);
-    // Wait a split second to ensure connection is stable before sending? 
-    // Usually immediate is fine, but let's confirm in UI.
+    // Wait a split second to ensure connection is stable before sending
     setTimeout(() => {
         updatePlayerCount(); // Reset to normal count
         // Send my current position to the new peer immediately so they see me
@@ -154,11 +174,6 @@ room.onPeerJoin(peerId => {
     }, 500);
 
 });
-
-function updatePlayerCount(statusOverride) {
-    const count = Object.keys(remotePlayers).length + 1;
-    document.getElementById('player-count').innerText = `Players: ${count}`;
-}
 
 room.onPeerLeave(peerId => {
     console.log(`${peerId} left`);
