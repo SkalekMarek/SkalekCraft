@@ -57,7 +57,7 @@ function updateHotbar() {
     });
 }
 // Init icons
-const types = ['grass', 'stone', 'dirt', 'wood', null, 'sand', null, 'stone', null];
+const types = ['grass', 'stone', 'dirt', 'wood', null, 'water', null, 'stone', null];
 slots.forEach((s, i) => {
     if (types[i]) {
         // Simple color approximation for icon
@@ -68,9 +68,11 @@ slots.forEach((s, i) => {
         if (types[i] === 'wood') color = '#4E342E';
         if (types[i] === 'leaves') color = '#388E3C';
         if (types[i] === 'sand') color = '#F4A460';
-        if (types[i] === 'sand') color = '#F4A460';
         if (types[i] === 'bedrock') color = '#1a1a1a';
+        if (types[i] === 'water') color = '#244F99';
         s.style.backgroundColor = color;
+    } else {
+        s.style.backgroundColor = 'transparent';
     }
 });
 
