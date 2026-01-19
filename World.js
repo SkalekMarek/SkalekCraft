@@ -106,7 +106,7 @@ export class World {
 
         // Water Logic
         if (type === 'water') {
-            this.blocks.set(key, { type, instanceId: -1 });
+            this.blocks.set(key, { type, instanceId: -1, level: 5 }); // Level 5 = Source / Full Strength
             this.requestWaterUpdate();
             return;
         }
@@ -345,7 +345,73 @@ export class World {
     }
 
     simulateWater() {
-        // Placeholder for future water physics
+        // Collect changes first to avoid modifying map while iterating
+        const changes = [];
+        const visited = new Set(); // Avoid processing same coord twice if duplicates exist (unlikely but safe)
+
+        for (const [key, data] of this.blocks) {
+            if (data.type !== 'water') continue;
+
+            const parts = key.split(',');
+            const x = parseInt(parts[0]);
+            const y = parseInt(parts[1]);
+            const z = parseInt(parts[2]);
+            const level = data.level !== undefined ? data.level : 5; // Default to 5 if old water
+
+            // 1. Check Below
+            const belowKey = `${x},${y - 1},${z}`;
+            const belowData = this.blocks.get(belowKey);
+
+            if (!belowData) {
+                // BELOW IS EMPTY -> Spread DOWN (Infinite / Reset to 5)
+                // Only if we haven't already planned to put something there
+                changes.push({ x: x, y: y - 1, z: z, level: 5 });
+            } else if (belowData.type !== 'water') {
+                // BELOW IS SOLID -> Spread SIDEWAYS
+                // Only if we have strength left
+                if (level > 1) {
+                    const neighbors = [
+                        { dx: 1, dy: 0, dz: 0 },
+                        { dx: -1, dy: 0, dz: 0 },
+                        { dx: 0, dy: 0, dz: 1 },
+                        { dx: 0, dy: 0, dz: -1 }
+                    ];
+
+                    for (const n of neighbors) {
+                        const nx = x + n.dx;
+                        const ny = y + n.dy;
+                        const nz = z + n.dz;
+                        const nKey = `${nx},${ny},${nz}`;
+
+                        // Spread if empty
+                        if (!this.blocks.has(nKey)) {
+                            // Check if another block is already claiming this spot in this tick? 
+                            // We can just push, last one wins or filter later. Push simple.
+                            changes.push({ x: nx, y: ny, z: nz, level: level - 1 });
+                        }
+                    }
+                }
+            }
+            // BELOW IS WATER -> Do nothing (continue falling)
+        }
+
+        if (changes.length > 0) {
+            let updated = false;
+            for (const c of changes) {
+                // Double check it's still empty (conflict resolution)
+                if (!this.getBlock(c.x, c.y, c.z)) {
+                    this.placeBlock(c.x, c.y, c.z, 'water');
+                    // Manually update level since placeBlock sets to 5 by default
+                    // But wait, placeBlock calls requestWaterUpdate().
+                    // We need to set the specific level.
+                    const key = `${c.x},${c.y},${c.z}`;
+                    const block = this.blocks.get(key);
+                    if (block) block.level = c.level;
+                    updated = true;
+                }
+            }
+            // requestWaterUpdate() is called by placeBlock, but maybe redundant. 
+        }
     }
 
 
