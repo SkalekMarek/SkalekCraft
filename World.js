@@ -5,6 +5,7 @@ export class World {
         this.scene = scene;
         this.blocks = new Map(); // "x,y,z" -> type
         this.objects = []; // For raycasting
+        this.seed = 123456; // Fixed seed
 
         // Materials
         const loader = new THREE.TextureLoader();
@@ -15,10 +16,10 @@ export class World {
             const ctx = canvas.getContext('2d');
             ctx.fillStyle = color;
             ctx.fillRect(0, 0, 64, 64);
-            // Noise
+            // Noise (Deterministic visual noise NOT strictly required to be synced but better)
             for (let i = 0; i < 64; i++) {
-                ctx.fillStyle = `rgba(0,0,0,${Math.random() * 0.15})`;
-                ctx.fillRect(Math.random() * 64, Math.random() * 64, 4, 4);
+                ctx.fillStyle = `rgba(0,0,0,${this.rng() * 0.15})`;
+                ctx.fillRect(Math.floor(this.rng() * 64), Math.floor(this.rng() * 64), 4, 4);
             }
             const t = new THREE.CanvasTexture(canvas);
             t.magFilter = THREE.NearestFilter;
@@ -34,6 +35,12 @@ export class World {
         };
 
         this.geometry = new THREE.BoxGeometry(1, 1, 1);
+    }
+
+    // Simple Linear Congruential Generator
+    rng() {
+        this.seed = (this.seed * 9301 + 49297) % 233280;
+        return this.seed / 233280;
     }
 
     getBlock(x, y, z) {
@@ -61,6 +68,9 @@ export class World {
     }
 
     generateSimple(size = 20) {
+        // Reset seed for consistency
+        this.seed = 123456;
+
         for (let x = -size; x < size; x++) {
             for (let z = -size; z < size; z++) {
                 // Perlin-ish noise (using sin combination)
@@ -75,7 +85,7 @@ export class World {
                 }
 
                 // Trees
-                if (x % 7 === 0 && z % 7 === 0 && Math.random() > 0.4) {
+                if (x % 7 === 0 && z % 7 === 0 && this.rng() > 0.4) {
                     this.generateTree(x, h + 1, z);
                 }
             }
@@ -83,7 +93,7 @@ export class World {
     }
 
     generateTree(x, y, z) {
-        const height = 4 + Math.floor(Math.random() * 2);
+        const height = 4 + Math.floor(this.rng() * 2);
         // Trunk
         for (let i = 0; i < height; i++) {
             this.placeBlock(x, y + i, z, 'wood');

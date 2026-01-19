@@ -143,12 +143,24 @@ function updatePlayerCount() {
 // 1. Peer Management
 room.onPeerJoin(peerId => {
     console.log(`${peerId} joined`);
+    updatePlayerCount(`Found peer ${peerId.substr(0, 4)}...`);
     addRemotePlayer(peerId);
-    updatePlayerCount();
-    // Send my current position to the new peer immediately so they see me
-    const p = player.camera.position;
-    sendMove({ x: p.x, y: p.y, z: p.z, ry: player.camera.rotation.y }, peerId);
+    // Wait a split second to ensure connection is stable before sending? 
+    // Usually immediate is fine, but let's confirm in UI.
+    setTimeout(() => {
+        updatePlayerCount(); // Reset to normal count
+        // Send my current position to the new peer immediately so they see me
+        const p = player.camera.position;
+        sendMove({ x: p.x, y: p.y, z: p.z, ry: player.camera.rotation.y }, peerId);
+    }, 500);
+
 });
+
+function updatePlayerCount(statusOverride) {
+    const count = Object.keys(remotePlayers).length + 1;
+    const status = statusOverride || (count > 1 ? "Connected" : "Searching...");
+    document.getElementById('player-count').innerText = `Players: ${count} (${status})`;
+}
 
 room.onPeerLeave(peerId => {
     console.log(`${peerId} left`);
