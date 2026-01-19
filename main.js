@@ -113,7 +113,7 @@ window.addEventListener('mousedown', (e) => {
 });
 
 
-// --- NETWORK & MULTIPLAYER (P2P) ---
+// --- NETWORK & MULTIPLAYER (P2P - MQTT) ---
 import { joinRoom } from 'trystero';
 
 // Config
@@ -126,10 +126,16 @@ const [sendBlock, getBlock] = room.makeAction('block');
 
 const remotePlayers = {};
 
+function updatePlayerCount() {
+    const count = Object.keys(remotePlayers).length + 1;
+    document.getElementById('player-count').innerText = `Players: ${count} (Connected)`;
+}
+
 // 1. Peer Management
 room.onPeerJoin(peerId => {
     console.log(`${peerId} joined`);
     addRemotePlayer(peerId);
+    updatePlayerCount();
     // Send my current position to the new peer immediately so they see me
     const p = player.camera.position;
     sendMove({ x: p.x, y: p.y, z: p.z, ry: player.camera.rotation.y }, peerId);
@@ -138,6 +144,7 @@ room.onPeerJoin(peerId => {
 room.onPeerLeave(peerId => {
     console.log(`${peerId} left`);
     removeRemotePlayer(peerId);
+    updatePlayerCount();
 });
 
 // 2. Movement Updates
