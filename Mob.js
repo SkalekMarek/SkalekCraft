@@ -200,7 +200,10 @@ export class Mob {
 
         if (attracted) {
             const dist = this.position.distanceTo(playerPos);
-            if (dist < 30 && dist > 2.0) { // Increased range to 30, reduced stop to 2.0
+            let stopDist = 2.5;
+            if (this.type === 'kohoutek') stopDist = 3.5; // Stop further away (larger body + 1 block gap)
+
+            if (dist < 30 && dist > stopDist) {
                 moveDir.subVectors(playerPos, this.position).normalize();
             }
         } else {
