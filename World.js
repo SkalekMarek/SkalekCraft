@@ -280,8 +280,11 @@ export class World {
 
     generateTree(x, y, z) {
         const height = 4 + Math.floor(this.rng() * 2);
-        // Trunk: Stop 1 block short of full height to ensure leaves handle the top
-        for (let i = 0; i < height; i++) this.placeBlock(x, y + i, z, 'wood');
+        // Trunk: Max 4 blocks
+        const trunkHeight = Math.min(height, 4);
+        for (let i = 0; i < trunkHeight; i++) this.placeBlock(x, y + i, z, 'wood');
+        // Fill remaining spine with leaves
+        for (let i = trunkHeight; i < height; i++) this.placeBlock(x, y + i, z, 'leaves');
 
         for (let lx = -2; lx <= 2; lx++) {
             for (let lz = -2; lz <= 2; lz++) {
@@ -298,8 +301,11 @@ export class World {
 
     generatePointyTree(x, y, z) { // Spruce-style
         const height = 6 + Math.floor(this.rng() * 3);
-        // Trunk
-        for (let i = 0; i < height; i++) this.placeBlock(x, y + i, z, 'wood');
+        // Trunk: Max 4 blocks
+        const trunkHeight = Math.min(height, 4);
+        for (let i = 0; i < trunkHeight; i++) this.placeBlock(x, y + i, z, 'wood');
+        // Fill remaining spine with leaves
+        for (let i = trunkHeight; i < height; i++) this.placeBlock(x, y + i, z, 'leaves');
 
         // Pointy leaves
         let radius = 2;
