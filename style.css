@@ -58,6 +58,8 @@ canvas {
     color: rgba(255, 255, 255, 0.5);
     position: relative;
     cursor: pointer;
+    background-size: cover;
+    background-position: center;
 }
 
 .active {

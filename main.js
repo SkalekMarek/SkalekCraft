@@ -72,26 +72,21 @@ function updateHotbar() {
     });
 }
 // Init icons
+// Init icons
 const types = ['grass', 'stone', 'dirt', 'wood', 'water', 'cecabait', null, null, null];
 slots.forEach((s, i) => {
     if (types[i]) {
-        // Simple color approximation for icon
-        let color = '#fff';
-        if (types[i] === 'grass') color = '#5C9E38';
-        if (types[i] === 'stone') color = '#757575';
-        if (types[i] === 'dirt') color = '#5D4037';
-        if (types[i] === 'wood') color = '#4E342E';
-        if (types[i] === 'leaves') color = '#388E3C';
-        if (types[i] === 'sand') color = '#F4A460';
-        if (types[i] === 'bedrock') color = '#1a1a1a';
-        if (types[i] === 'water') color = '#244F99';
+        // Default to transparent background color to show texture
+        s.style.backgroundColor = 'rgba(0,0,0,0.3)';
+        s.style.backgroundImage = 'none';
+
         if (types[i] === 'cecabait') {
             s.style.backgroundImage = `url('textures/cecabait.jpg')`;
-            s.style.backgroundSize = 'cover';
-            s.style.backgroundColor = 'transparent';
+        } else if (types[i] === 'water') {
+            s.style.backgroundColor = '#244F99'; // Keep color for water as no texture
         } else {
-            s.style.backgroundColor = color;
-            s.style.backgroundImage = 'none';
+            // Block textures
+            s.style.backgroundImage = `url('textures/${types[i]}.png')`;
         }
     } else {
         s.style.backgroundColor = 'transparent';
