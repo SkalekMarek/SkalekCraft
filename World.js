@@ -36,7 +36,7 @@ export class World {
         this.geometry = new THREE.BoxGeometry(1, 1, 1);
 
         // Instanced Rendering Setup
-        this.capacity = 60000; // Increased capacity for larger map
+        this.capacity = 150000; // Increased capacity for 150x150 map
         this.instancedMeshes = {};
         this.objects = []; // For main.js raycaster
 
@@ -161,7 +161,7 @@ export class World {
     }
 
     // --- GENERATION ---
-    generateSimple(size = 40) { // Larger map radius
+    generateSimple(size = 75) { // Radius 75 = 150x150 map
         this.seed = 123456;
 
         // Reset
@@ -200,7 +200,7 @@ export class World {
             }
         }
 
-        document.getElementById('block-count').innerText = `Blocks: (Instanced)`;
+        document.getElementById('block-count').innerText = `Blocks: ${this.blocks.size} (Instanced)`;
     }
 
     generateTree(x, y, z) {
