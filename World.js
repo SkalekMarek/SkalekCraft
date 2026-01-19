@@ -63,7 +63,7 @@ export class World {
             color: 0x244F99, transparent: true, opacity: 0.7, side: THREE.DoubleSide
         });
         this.waterSideMat = new THREE.MeshStandardMaterial({
-            color: 0x244F99, transparent: true, opacity: 0.7, side: THREE.FrontSide
+            color: 0x244F99, transparent: true, opacity: 0.7, side: THREE.DoubleSide
         });
         this.waterSurfaceMesh = null;
         this.waterSideMesh = null;
@@ -315,8 +315,8 @@ export class World {
             else if (face === 'nx') v = [X, Y, Z, X, Y, Z1, X, Y1, Z1, X, Y, Z, X, Y1, Z1, X, Y1, Z];
             else if (face === 'py') v = [X, Y1, Z1, X1, Y1, Z1, X1, Y1, Z, X, Y1, Z1, X1, Y1, Z, X, Y1, Z];
             else if (face === 'ny') v = [X, Y, Z, X1, Y, Z, X1, Y, Z1, X, Y, Z, X1, Y, Z1, X, Y, Z1];
-            else if (face === 'pz') v = [X1, Y, Z1, X, Y, Z1, X, Y1, Z1, X1, Y, Z1, X, Y1, Z1, X1, Y1, Z1];
-            else if (face === 'nz') v = [X, Y, Z, X1, Y, Z, X1, Y1, Z, X, Y, Z, X1, Y1, Z, X, Y1, Z];
+            else if (face === 'pz') v = [X1, Y, Z1, X, Y1, Z1, X, Y, Z1, X1, Y, Z1, X1, Y1, Z1, X, Y1, Z1];
+            else if (face === 'nz') v = [X, Y, Z, X, Y1, Z, X1, Y, Z, X1, Y, Z, X, Y1, Z, X1, Y1, Z];
             targetArray.push(...v);
         };
 
