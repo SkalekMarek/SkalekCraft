@@ -117,7 +117,7 @@ window.addEventListener('mousedown', (e) => {
 import { joinRoom } from 'trystero';
 
 // Config
-const roomConfig = { appId: 'skalek-craft-v1' };
+const roomConfig = { appId: 'skalek-craft-v2-torrent' };
 const room = joinRoom(roomConfig, 'main-lobby');
 
 // Actions
