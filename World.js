@@ -229,9 +229,14 @@ export class World {
                 // Blocks
                 for (let y = -5; y <= h; y++) {
                     let type = 'stone';
-                    if (y === h && y >= waterLevel) type = 'grass';
-                    else if (y > h - 3 && y >= waterLevel) type = 'dirt';
-                    else if (y < h && y <= waterLevel) type = 'sand'; // Underwater floor
+                    if (y >= waterLevel) {
+                        if (y === h) type = 'grass';
+                        else if (y > h - 3) type = 'dirt';
+                    } else {
+                        // Underwater
+                        if (y === h) type = 'sand'; // Surface is sand
+                        // Deep is stone (default)
+                    }
 
                     this.placeBlock(x, y, z, type);
                 }
