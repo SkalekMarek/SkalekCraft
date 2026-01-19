@@ -117,7 +117,16 @@ window.addEventListener('mousedown', (e) => {
 import { joinRoom } from 'trystero';
 
 // Config
-const roomConfig = { appId: 'skalek-craft-v2-torrent' };
+const roomConfig = {
+    appId: 'skalek-craft-v3-stun',
+    rtcConfig: {
+        iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:stun2.l.google.com:19302' }
+        ]
+    }
+};
 const room = joinRoom(roomConfig, 'main-lobby');
 
 // Actions
