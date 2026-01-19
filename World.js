@@ -30,17 +30,24 @@ export class World {
             wood: new THREE.MeshStandardMaterial({ map: createTexture('#4E342E') }),
             leaves: new THREE.MeshStandardMaterial({ map: createTexture('#388E3C'), transparent: true }),
             sand: new THREE.MeshStandardMaterial({ map: createTexture('#F4A460') }),
-            bedrock: new THREE.MeshStandardMaterial({ map: createTexture('#1a1a1a') })
+            bedrock: new THREE.MeshStandardMaterial({ map: createTexture('#1a1a1a') }),
+            water: new THREE.MeshStandardMaterial({ // Instanced water for simple check, though custom mesh system handles rendering
+                color: 0x244F99, transparent: true, opacity: 0.7, side: THREE.DoubleSide
+            })
         };
 
         this.geometry = new THREE.BoxGeometry(1, 1, 1);
 
         // Instanced Rendering Setup
-        this.capacity = 150000; // Increased capacity for 150x150 map
+        this.capacity = 300000; // Increased capacity for 200x200 map
         this.instancedMeshes = {};
         this.objects = []; // For main.js raycaster
 
         for (const [type, mat] of Object.entries(materials)) {
+            // Skip water for instanced mesh if we use custom system, BUT having it here allows raycasting to hit it if we want
+            // However, our custom system draws water separately. Let's keep it consistent with previous logic.
+            if (type === 'water') continue;
+
             const mesh = new THREE.InstancedMesh(this.geometry, mat, this.capacity);
             mesh.count = 0;
             mesh.name = type;
@@ -55,7 +62,7 @@ export class World {
             color: 0x244F99, transparent: true, opacity: 0.7, side: THREE.DoubleSide
         });
         this.waterSideMat = new THREE.MeshStandardMaterial({
-            color: 0x244F99, transparent: true, opacity: 0.7, side: THREE.FrontSide // Optimization: only see front
+            color: 0x244F99, transparent: true, opacity: 0.7, side: THREE.FrontSide
         });
         this.waterSurfaceMesh = null;
         this.waterSideMesh = null;
@@ -157,11 +164,11 @@ export class World {
         }
 
         this.blocks.delete(key);
-        // this.requestWaterUpdate(); // In case water flows into it (not fully implemented yet)
+        this.requestWaterUpdate();
     }
 
     // --- GENERATION ---
-    generateSimple(size = 75) { // Radius 75 = 150x150 map
+    generateSimple(size = 100) { // Radius 100 = 200x200 map
         this.seed = 123456;
 
         // Reset
@@ -172,23 +179,50 @@ export class World {
         this.blocks.clear();
         this.requestWaterUpdate();
 
+        const waterLevel = 0;
+
         for (let x = -size; x < size; x++) {
             for (let z = -size; z < size; z++) {
                 // Deterministic integer noise
                 let n = (x * 15731 + z * 789221 + 1376312589) & 0x7fffffff;
                 n = (n >> 13) ^ n;
                 n = (n * (n * n * 15731 + 789221) + 1376312589) & 0x7fffffff;
-                const h = Math.floor((n / 2147483648.0) * 4);
 
+                // Base Height: -3 to 6
+                let h = Math.floor((n / 2147483648.0) * 10) - 3;
+
+                // Edge Mask (Force borders UP)
+                // Distance from center
+                const dist = Math.sqrt(x * x + z * z);
+                const maxDist = size * 0.85;
+                if (dist > maxDist) {
+                    // Ramp up
+                    const rise = (dist - maxDist) * 0.8;
+                    h += Math.floor(rise);
+                }
+
+                // Blocks
                 for (let y = -5; y <= h; y++) {
                     let type = 'stone';
-                    if (y === h) type = 'grass';
-                    else if (y > h - 3) type = 'dirt';
+                    if (y === h && y >= waterLevel) type = 'grass';
+                    else if (y > h - 3 && y >= waterLevel) type = 'dirt';
+                    else if (y < h && y <= waterLevel) type = 'sand'; // Underwater floor
+
                     this.placeBlock(x, y, z, type);
                 }
 
-                if (x % 7 === 0 && z % 7 === 0) {
-                    if (this.rng() > 0.3) {
+                // Water
+                if (h < waterLevel) {
+                    for (let wy = h + 1; wy <= waterLevel; wy++) {
+                        this.placeBlock(x, wy, z, 'water');
+                    }
+                }
+
+                // Trees (Random density, no grid)
+                // Only on grass (land)
+                if (h >= waterLevel) {
+                    // 1 in 80 chance (~1.25%)
+                    if (this.rng() < 0.0125) {
                         // Random Tree Type
                         if (this.rng() > 0.5) {
                             this.generateTree(x, h + 1, z);
