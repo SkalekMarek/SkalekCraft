@@ -42,7 +42,7 @@ export class World {
             dirt: new THREE.MeshStandardMaterial({ map: createTexture('#5D4037') }),
             wood: new THREE.MeshStandardMaterial({ map: loadTexture('wood.png') }),
             leaves: new THREE.MeshStandardMaterial({
-                map: loadTexture('leaves.png'),
+                map: loadTexture('azalea_leaves.png'),
                 transparent: true,
                 alphaTest: 0.5,
                 side: THREE.DoubleSide
