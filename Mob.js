@@ -9,14 +9,62 @@ export class Mob {
         this.velocity = new THREE.Vector3(0, 0, 0);
         this.onGround = false;
         this.isDead = false;
+        this.health = 3; // 3 Hits
 
         // Visuals
         this.group = new THREE.Group();
         this.group.position.copy(this.position);
         this.group.scale.set(0.7, 0.7, 0.7); // 70% size
+        this.group.userData = { mob: this }; // Link for raycasting
         this.scene.add(this.group);
 
         this.createModel(type);
+    }
+
+    takeDamage(amount, attackerPos) {
+        if (this.isDead) return;
+
+        this.health -= amount;
+
+        // Knockback
+        const recoil = this.position.clone().sub(attackerPos).normalize();
+        recoil.y = 0.5; // Slight pop up
+        this.velocity.add(recoil.multiplyScalar(15)); // Knockback force
+        this.onGround = false;
+
+        // Red Flash
+        this.flashRed();
+
+        // Death
+        if (this.health <= 0) {
+            this.die();
+        }
+    }
+
+    flashRed() {
+        const originalMats = [];
+        const redMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+
+        this.group.traverse((child) => {
+            if (child.isMesh) {
+                originalMats.push({ mesh: child, mat: child.material });
+                child.material = redMat;
+            }
+        });
+
+        setTimeout(() => {
+            if (this.isDead) return; // Don't bother if dead (removed)
+            originalMats.forEach(({ mesh, mat }) => {
+                mesh.material = mat;
+            });
+        }, 100);
+    }
+
+    die() {
+        this.isDead = true;
+        this.scene.remove(this.group);
+        const audio = new Audio('died.mp3');
+        audio.play().catch(e => console.error("Audio error:", e));
     }
 
     createCowTexture() {

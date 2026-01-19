@@ -122,7 +122,26 @@ window.addEventListener('mousedown', (e) => {
     if (intersects.length > 0 && intersects[0].distance < 6) {
         const hit = intersects[0];
 
-        if (e.button === 0) { // Left Click - Break
+        if (e.button === 0) { // Left Click - Attack / Break
+            // 1. Raycast Mobs first
+            const mobMeshes = mobs.map(m => m.group);
+            const mobIntersects = raycaster.intersectObjects(mobMeshes, true);
+
+            if (mobIntersects.length > 0 && mobIntersects[0].distance < 4) {
+                // Find the mob instance
+                let targetObj = mobIntersects[0].object;
+                // Traverse up to find group with userData
+                while (targetObj && !targetObj.userData.mob) {
+                    targetObj = targetObj.parent;
+                }
+
+                if (targetObj && targetObj.userData.mob) {
+                    targetObj.userData.mob.takeDamage(1, player.position);
+                    return; // Hit mob, don't break block
+                }
+            }
+
+            // 2. Break Block (if no mob hit)
             if (hit.object.isInstancedMesh) {
                 world.removeBlock(hit.object, hit.instanceId);
 
