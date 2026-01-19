@@ -60,6 +60,45 @@ export class Mob {
                 this.group.add(leg);
             });
 
+        } else if (type === 'kohoutek') {
+            // Cow-like model (Larger, Dark)
+            // Body
+            const bodyGeo = new THREE.BoxGeometry(0.9, 0.9, 1.4); // Larger
+            const darkMat = new THREE.MeshStandardMaterial({ color: 0x3d3d3d }); // Dark Grey
+            this.body = new THREE.Mesh(bodyGeo, darkMat);
+            this.body.position.y = 0.7;
+            this.group.add(this.body);
+
+            // Head
+            const headGeo = new THREE.BoxGeometry(0.8, 0.8, 0.8);
+            const loader = new THREE.TextureLoader();
+            const faceTexture = loader.load('textures/kohoutek.png');
+            faceTexture.magFilter = THREE.NearestFilter;
+            const faceMat = new THREE.MeshStandardMaterial({ map: faceTexture });
+
+            const headMats = [
+                darkMat, darkMat,
+                darkMat, darkMat,
+                faceMat, darkMat
+            ];
+            this.head = new THREE.Mesh(headGeo, headMats);
+            this.head.position.set(0, 1.2, 0.9);
+            this.group.add(this.head);
+
+            // Legs
+            this.legs = [];
+            const legGeo = new THREE.BoxGeometry(0.3, 0.7, 0.3);
+            const legPos = [
+                { x: -0.3, z: 0.45 }, { x: 0.3, z: 0.45 },
+                { x: -0.3, z: -0.45 }, { x: 0.3, z: -0.45 }
+            ];
+            legPos.forEach(p => {
+                const leg = new THREE.Mesh(legGeo, darkMat);
+                leg.position.set(p.x, 0.35, p.z);
+                this.legs.push(leg);
+                this.group.add(leg);
+            });
+
         } else {
             // Pig-like model (Ceca)
             // Body
@@ -126,6 +165,7 @@ export class Mob {
         if (isHoldingBait) {
             if (this.type === 'ceca' && isHoldingBait === 'cecabait') attracted = true;
             if (this.type === 'bohy' && isHoldingBait === 'bohybait') attracted = true;
+            if (this.type === 'kohoutek' && isHoldingBait === 'kohoutekbait') attracted = true;
         }
 
         if (attracted) {
