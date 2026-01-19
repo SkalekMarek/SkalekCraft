@@ -47,7 +47,7 @@ export class World {
                 alphaTest: 0.5,
                 side: THREE.DoubleSide
             }),
-            sand: new THREE.MeshStandardMaterial({ map: createTexture('#F4A460') }),
+            sand: new THREE.MeshStandardMaterial({ map: loadTexture('sand.png') }),
             bedrock: new THREE.MeshStandardMaterial({ map: createTexture('#1a1a1a') }),
             water: new THREE.MeshStandardMaterial({ // Instanced water for simple check, though custom mesh system handles rendering
                 color: 0x244F99, transparent: true, opacity: 0.7, side: THREE.DoubleSide
