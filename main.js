@@ -113,60 +113,68 @@ window.addEventListener('mousedown', (e) => {
 });
 
 
-// --- NETWORK & MULTIPLAYER ---
-const socket = io();
+// --- NETWORK & MULTIPLAYER (P2P) ---
+import { joinRoom } from 'trystero';
+
+// Config
+const roomConfig = { appId: 'skalek-craft-v1' };
+const room = joinRoom(roomConfig, 'main-lobby');
+
+// Actions
+const [sendMove, getMove] = room.makeAction('move');
+const [sendBlock, getBlock] = room.makeAction('block');
+
 const remotePlayers = {};
 
-socket.on('currentPlayers', (players) => {
-    Object.keys(players).forEach((id) => {
-        if (id === socket.id) return;
-        addRemotePlayer(id, players[id]);
-    });
+// 1. Peer Management
+room.onPeerJoin(peerId => {
+    console.log(`${peerId} joined`);
+    addRemotePlayer(peerId);
+    // Send my current position to the new peer immediately so they see me
+    const p = player.camera.position;
+    sendMove({ x: p.x, y: p.y, z: p.z, ry: player.camera.rotation.y }, peerId);
 });
 
-socket.on('newPlayer', (data) => {
-    addRemotePlayer(data.id, data.player);
+room.onPeerLeave(peerId => {
+    console.log(`${peerId} left`);
+    removeRemotePlayer(peerId);
 });
 
-socket.on('playerDisconnected', (id) => {
-    removeRemotePlayer(id);
-});
+// 2. Movement Updates
+getMove((data, peerId) => {
+    // If we haven't seen this peer yet (e.g. we joined late), add them
+    if (!remotePlayers[peerId]) addRemotePlayer(peerId);
 
-socket.on('playerMoved', (data) => {
-    const p = remotePlayers[data.id];
+    const p = remotePlayers[peerId];
     if (p) {
-        // Simple interpolation could go here, for now direct snap
         p.position.set(data.x, data.y, data.z);
         p.rotation.y = data.ry;
-        // Update name tag or head rotation if added later
     }
 });
 
-socket.on('blockUpdate', (data) => {
+// 3. Block Updates
+getBlock((data, peerId) => {
     if (data.action === 'place') {
         world.placeBlock(data.x, data.y, data.z, data.type);
     } else if (data.action === 'remove') {
-        // We need a removeBlockAt or similar that doesn't rely on mesh reference if possible, 
-        // or find the mesh at that location.
-        // World.js has removeBlock(mesh), let's see if we can use that or need a helper.
-        // For now, let's assume valid coordinates and use world internal logic.
-        // Actually World.js has removeBlockAt(x,y,z) which is perfect.
         world.removeBlockAt(data.x, data.y, data.z);
     }
 });
 
-function addRemotePlayer(id, data) {
+
+function addRemotePlayer(id) {
+    if (remotePlayers[id]) return;
+
     // Simple Player Mesh
     const geometry = new THREE.BoxGeometry(0.6, 1.8, 0.6);
-    const material = new THREE.MeshStandardMaterial({ color: 0xff0000 }); // Red for enemies/others
+    const material = new THREE.MeshStandardMaterial({ color: 0xff0000 }); // Red for now
     const mesh = new THREE.Mesh(geometry, material);
-    mesh.position.set(data.x, data.y, data.z);
 
-    // Add "face" to see direction
+    // Face indicator
     const faceGeo = new THREE.BoxGeometry(0.5, 0.5, 0.2);
     const faceMat = new THREE.MeshStandardMaterial({ color: 0xffff00 });
     const face = new THREE.Mesh(faceGeo, faceMat);
-    face.position.set(0, 0.5, -0.4); // slightly forward/up
+    face.position.set(0, 0.5, -0.4);
     mesh.add(face);
 
     scene.add(mesh);
@@ -183,23 +191,24 @@ function removeRemotePlayer(id) {
 
 // --- LOOP ---
 let prevTime = performance.now();
+const broadcastRate = 50; // ms (20 times/sec)
+let lastBroadcast = 0;
 
 function animate() {
     requestAnimationFrame(animate);
     const time = performance.now();
-    const delta = Math.min((time - prevTime) / 1000, 0.1); // Cap delta to prevent huge jumps
+    const delta = Math.min((time - prevTime) / 1000, 0.1);
     prevTime = time;
 
     player.update(delta);
 
-    // Send visual updates to server if moved
-    if (player.controls.isLocked) {
+    // Broadcast Position
+    if (time - lastBroadcast > broadcastRate) {
+        // Only send if moved? For simplicity/smoothing, sending frequently is robust for P2P UDP
         const p = player.camera.position;
-        const r = player.camera.rotation.y;
-        // We should really only send if changed explicitly, doing it every frame is okay for localhost testing
-        // but bad for bandwidth. Let's add a check in Player.js or here.
-        // For simplicity, send every frame here for now, or throttle.
-        socket.emit('playerMovement', { x: p.x, y: p.y, z: p.z, ry: player.camera.rotation.y });
+        // Optimization: Check distance moved before sending could save bandwidth
+        sendMove({ x: p.x, y: p.y, z: p.z, ry: player.camera.rotation.y });
+        lastBroadcast = time;
     }
 
     renderer.render(scene, camera);
