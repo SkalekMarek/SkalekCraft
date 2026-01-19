@@ -198,6 +198,7 @@ export class World {
         this.requestWaterUpdate();
 
         const waterLevel = 0;
+        const treePositions = []; // Track spacing
 
         for (let x = -size; x < size; x++) {
             for (let z = -size; z < size; z++) {
@@ -244,18 +245,32 @@ export class World {
 
                 // Trees (Random density, no grid)
                 // Only on land and enough space
+                // Trees (Random density, no grid)
+                // Only on land and enough space
                 if (h >= waterLevel) {
                     // 1 in 60 chance (~1.6%)
                     if (this.rng() < 0.016) {
-                        // Random Tree Type
-                        if (this.rng() > 0.5) {
-                            this.generateTree(x, h + 1, z);
-                        } else {
-                            this.generatePointyTree(x, h + 1, z);
+                        // Spacing Check
+                        let tooClose = false;
+                        for (const p of treePositions) {
+                            const dx = p.x - x;
+                            const dz = p.z - z;
+                            if (dx * dx + dz * dz < 25) { // 5 block radius buffer (safe spacing)
+                                tooClose = true;
+                                break;
+                            }
+                        }
+
+                        if (!tooClose) {
+                            treePositions.push({ x, z });
+                            // Random Tree Type
+                            if (this.rng() > 0.5) {
+                                this.generateTree(x, h + 1, z);
+                            } else {
+                                this.generatePointyTree(x, h + 1, z);
+                            }
                         }
                     }
-
-
                 }
             }
         }
@@ -265,12 +280,16 @@ export class World {
 
     generateTree(x, y, z) {
         const height = 4 + Math.floor(this.rng() * 2);
-        for (let i = 0; i < height; i++) this.placeBlock(x, y + i, z, 'wood');
+        // Trunk: Stop 1 block short of full height to ensure leaves handle the top
+        for (let i = 0; i < height - 1; i++) this.placeBlock(x, y + i, z, 'wood');
+
         for (let lx = -2; lx <= 2; lx++) {
             for (let lz = -2; lz <= 2; lz++) {
-                for (let ly = height - 1; ly <= height + 1; ly++) {
+                // Leaves start slightly lower to cover trunk
+                for (let ly = height - 2; ly <= height; ly++) {
                     if (Math.abs(lx) + Math.abs(lz) > 3) continue;
-                    if (lx === 0 && lz === 0 && ly < height + 1) continue;
+                    // Skip center column ONLY if it's NOT the very top
+                    if (lx === 0 && lz === 0 && ly < height) continue;
                     this.placeBlock(x + lx, y + ly, z + lz, 'leaves');
                 }
             }
@@ -279,8 +298,8 @@ export class World {
 
     generatePointyTree(x, y, z) { // Spruce-style
         const height = 6 + Math.floor(this.rng() * 3);
-        // Tall trunk
-        for (let i = 0; i < height; i++) this.placeBlock(x, y + i, z, 'wood');
+        // Trunk
+        for (let i = 0; i < height - 1; i++) this.placeBlock(x, y + i, z, 'wood');
 
         // Pointy leaves
         let radius = 2;
