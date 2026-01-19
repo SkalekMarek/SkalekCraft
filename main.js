@@ -57,7 +57,7 @@ function updateHotbar() {
     });
 }
 // Init icons
-const types = ['grass', 'stone', 'dirt', 'wood', 'leaves', 'sand', 'bedrock', 'stone', 'wood'];
+const types = ['grass', 'stone', 'dirt', 'wood', null, 'sand', null, 'stone', null];
 slots.forEach((s, i) => {
     if (types[i]) {
         // Simple color approximation for icon
@@ -124,12 +124,12 @@ window.addEventListener('mousedown', (e) => {
             const dz = Math.abs(pos.z - pPos.z);
             if (dx < 0.8 && dy < 1.8 && dz < 0.8) return;
 
-            const type = types[selectedSlot] || 'stone';
+            const type = types[selectedSlot];
+            if (!type) return;
+
             const bx = Math.floor(pos.x);
             const by = Math.floor(pos.y);
             const bz = Math.floor(pos.z);
-
-
 
             world.placeBlock(bx, by, bz, type);
             if (typeof sendBlock === 'function') sendBlock({ action: 'place', x: bx, y: by, z: bz, type: type });
