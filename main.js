@@ -82,7 +82,12 @@ window.addEventListener('mousedown', (e) => {
         const hit = intersects[0];
 
         if (e.button === 0) { // Left Click - Break
-            world.removeBlock(hit.object);
+            const obj = hit.object;
+            if (obj.userData && obj.userData.type) {
+                const { x, y, z } = obj.userData;
+                world.removeBlock(obj);
+                socket.emit('blockUpdate', { action: 'remove', x, y, z });
+            }
         } else if (e.button === 2) { // Right Click - Place
             // Calculate new position
             const norm = hit.face.normal;
@@ -97,10 +102,83 @@ window.addEventListener('mousedown', (e) => {
 
             // Determine type from hotbar (mock)
             const type = types[selectedSlot] || 'stone';
-            world.placeBlock(Math.floor(pos.x), Math.floor(pos.y), Math.floor(pos.z), type);
+            const bx = Math.floor(pos.x);
+            const by = Math.floor(pos.y);
+            const bz = Math.floor(pos.z);
+
+            world.placeBlock(bx, by, bz, type);
+            socket.emit('blockUpdate', { action: 'place', x: bx, y: by, z: bz, type: type });
         }
     }
 });
+
+
+// --- NETWORK & MULTIPLAYER ---
+const socket = io();
+const remotePlayers = {};
+
+socket.on('currentPlayers', (players) => {
+    Object.keys(players).forEach((id) => {
+        if (id === socket.id) return;
+        addRemotePlayer(id, players[id]);
+    });
+});
+
+socket.on('newPlayer', (data) => {
+    addRemotePlayer(data.id, data.player);
+});
+
+socket.on('playerDisconnected', (id) => {
+    removeRemotePlayer(id);
+});
+
+socket.on('playerMoved', (data) => {
+    const p = remotePlayers[data.id];
+    if (p) {
+        // Simple interpolation could go here, for now direct snap
+        p.position.set(data.x, data.y, data.z);
+        p.rotation.y = data.ry;
+        // Update name tag or head rotation if added later
+    }
+});
+
+socket.on('blockUpdate', (data) => {
+    if (data.action === 'place') {
+        world.placeBlock(data.x, data.y, data.z, data.type);
+    } else if (data.action === 'remove') {
+        // We need a removeBlockAt or similar that doesn't rely on mesh reference if possible, 
+        // or find the mesh at that location.
+        // World.js has removeBlock(mesh), let's see if we can use that or need a helper.
+        // For now, let's assume valid coordinates and use world internal logic.
+        // Actually World.js has removeBlockAt(x,y,z) which is perfect.
+        world.removeBlockAt(data.x, data.y, data.z);
+    }
+});
+
+function addRemotePlayer(id, data) {
+    // Simple Player Mesh
+    const geometry = new THREE.BoxGeometry(0.6, 1.8, 0.6);
+    const material = new THREE.MeshStandardMaterial({ color: 0xff0000 }); // Red for enemies/others
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.position.set(data.x, data.y, data.z);
+
+    // Add "face" to see direction
+    const faceGeo = new THREE.BoxGeometry(0.5, 0.5, 0.2);
+    const faceMat = new THREE.MeshStandardMaterial({ color: 0xffff00 });
+    const face = new THREE.Mesh(faceGeo, faceMat);
+    face.position.set(0, 0.5, -0.4); // slightly forward/up
+    mesh.add(face);
+
+    scene.add(mesh);
+    remotePlayers[id] = mesh;
+}
+
+function removeRemotePlayer(id) {
+    if (remotePlayers[id]) {
+        scene.remove(remotePlayers[id]);
+        delete remotePlayers[id];
+    }
+}
 
 
 // --- LOOP ---
@@ -113,6 +191,16 @@ function animate() {
     prevTime = time;
 
     player.update(delta);
+
+    // Send visual updates to server if moved
+    if (player.controls.isLocked) {
+        const p = player.camera.position;
+        const r = player.camera.rotation.y;
+        // We should really only send if changed explicitly, doing it every frame is okay for localhost testing
+        // but bad for bandwidth. Let's add a check in Player.js or here.
+        // For simplicity, send every frame here for now, or throttle.
+        socket.emit('playerMovement', { x: p.x, y: p.y, z: p.z, ry: player.camera.rotation.y });
+    }
 
     renderer.render(scene, camera);
 }
