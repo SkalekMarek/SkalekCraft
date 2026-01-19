@@ -46,7 +46,7 @@ for (let i = 0; i < 6; i++) {
     let type = 'ceca';
     if (r < 0.33) type = 'bohy';
     else if (r < 0.66) type = 'kohoutek';
-    else type = 'ulrich';
+
 
     spawnMob(type, (Math.random() - 0.5) * 20, 20, (Math.random() - 0.5) * 20);
 }

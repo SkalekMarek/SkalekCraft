@@ -212,73 +212,13 @@ export class Mob {
         const headBlock = this.world.getBlockType(Math.floor(this.position.x), Math.floor(this.position.y + 0.5), Math.floor(this.position.z));
         const inWater = (headBlock === 'water');
 
-        if (this.type === 'ulrich') {
-            if (inWater) {
-                this.velocity.y *= 0.9; // Drag
-                if (Math.abs(this.velocity.y) < 0.1) this.velocity.y = 0;
-
-                // Keep inside water (swim)
-                // If attempting to move out, block it?
-                // AI will handle steering, but here we just apply generic water drag
-                this.velocity.x *= 0.8;
-                this.velocity.z *= 0.8;
-            } else {
-                // Out of water! Jump/Flop towards water
-                this.velocity.y -= 25 * delta; // Gravity
-                this.velocity.x *= 0.5; // High friction on land
-                this.velocity.z *= 0.5;
-
-                // Scan for water
-                const now = performance.now();
-                if (this.onGround && (!this.lastWaterSearch || now - this.lastWaterSearch > 500)) { // Check every 0.5s (more responsive but cheaper)
-                    this.lastWaterSearch = now;
-                    let bestWater = null;
-                    let minDst = 999;
-                    const bx = Math.floor(this.position.x);
-                    const by = Math.floor(this.position.y);
-                    const bz = Math.floor(this.position.z);
-                    const range = 8;
-
-                    // Random Sampling: Check 10 random spots instead of 600+
-                    for (let i = 0; i < 10; i++) {
-                        const rx = Math.floor((Math.random() - 0.5) * 2 * range);
-                        const rz = Math.floor((Math.random() - 0.5) * 2 * range);
-                        const ry = Math.floor((Math.random() - 0.5) * 4); // -2 to 2
-
-                        if (this.world.getBlockType(bx + rx, by + ry, bz + rz) === 'water') {
-                            const d = rx * rx + ry * ry + rz * rz;
-                            if (d < minDst) {
-                                minDst = d;
-                                bestWater = new THREE.Vector3(bx + rx + 0.5, by + ry + 0.5, bz + rz + 0.5);
-                            }
-                        }
-                    }
-
-                    if (bestWater) {
-                        // Jump towards water
-                        const dir = new THREE.Vector3().subVectors(bestWater, this.position).normalize();
-                        this.velocity.x = dir.x * 4;
-                        this.velocity.z = dir.z * 4;
-                        this.velocity.y = 5;
-                        this.onGround = false;
-                    } else {
-                        // Panicked flopping
-                        this.velocity.y = 3;
-                        this.velocity.x = (Math.random() - 0.5) * 2;
-                        this.velocity.z = (Math.random() - 0.5) * 2;
-                        this.onGround = false;
-                    }
-                }
-            }
+        // Normal Mob Gravity/Water
+        if (headBlock === 'water') {
+            this.velocity.y = 5; // Float up like holding space
+            this.velocity.x *= 0.8; // Water resistance
+            this.velocity.z *= 0.8;
         } else {
-            // Normal Mob Gravity/Water
-            if (headBlock === 'water') {
-                this.velocity.y = 5; // Float up like holding space
-                this.velocity.x *= 0.8; // Water resistance
-                this.velocity.z *= 0.8;
-            } else {
-                this.velocity.y -= 25 * delta;
-            }
+            this.velocity.y -= 25 * delta;
         }
 
         // Physics / Movement Intent
