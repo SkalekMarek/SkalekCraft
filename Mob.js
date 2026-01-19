@@ -19,6 +19,31 @@ export class Mob {
         this.createModel(type);
     }
 
+    createCowTexture() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 128;
+        canvas.height = 128;
+        const ctx = canvas.getContext('2d');
+
+        // Base Brown
+        ctx.fillStyle = '#4B3621';
+        ctx.fillRect(0, 0, 128, 128);
+
+        // White Patches
+        ctx.fillStyle = '#FFFFFF';
+        for (let i = 0; i < 8; i++) {
+            const x = Math.random() * 128;
+            const y = Math.random() * 128;
+            const w = 20 + Math.random() * 40;
+            const h = 20 + Math.random() * 40;
+            ctx.fillRect(x, y, w, h);
+        }
+
+        const tex = new THREE.CanvasTexture(canvas);
+        tex.magFilter = THREE.NearestFilter;
+        return tex;
+    }
+
     createModel(type) {
         if (type === 'bohy') {
             // Chicken-like model
@@ -62,33 +87,16 @@ export class Mob {
 
         } else if (type === 'kohoutek') {
             // Cow-like model (Larger by ~30%, Dark Brown, patches)
-            // Body
+            // Body with Procedural Texture
             const bodyGeo = new THREE.BoxGeometry(1.2, 1.2, 1.8); // +30% size
-            const brownMat = new THREE.MeshStandardMaterial({ color: 0x4B3621 }); // Dark Brown
+
+            // Create unique texture for each cow so patterns look different
+            const cowTexture = this.createCowTexture();
+            const brownMat = new THREE.MeshStandardMaterial({ map: cowTexture });
+
             this.body = new THREE.Mesh(bodyGeo, brownMat);
             this.body.position.y = 0.9;
             this.group.add(this.body);
-
-            // Patches (White)
-            const patchGeo = new THREE.BoxGeometry(0.4, 0.1, 0.4);
-            const patchMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
-
-            const p1 = new THREE.Mesh(patchGeo, patchMat);
-            p1.position.set(0.3, 0.61, 0.2); // Top patch
-            p1.rotation.y = 0.5;
-            this.body.add(p1);
-
-            const p2 = new THREE.Mesh(patchGeo, patchMat); // Side patch
-            p2.scale.set(1, 4, 1);
-            p2.position.set(-0.61, 0, -0.4);
-            this.body.add(p2);
-
-            const p3 = new THREE.Mesh(patchGeo, patchMat); // Back patch
-            p3.scale.set(2, 2, 2);
-            p3.position.set(0, 0.2, 0.91);
-            p3.rotation.x = Math.PI / 2;
-            this.body.add(p3);
-
 
             // Head
             const headGeo = new THREE.BoxGeometry(1.0, 1.0, 1.0);
@@ -97,6 +105,7 @@ export class Mob {
             faceTexture.magFilter = THREE.NearestFilter;
             const faceMat = new THREE.MeshStandardMaterial({ map: faceTexture });
 
+            // Reuse brown mat for head sides so it matches body
             const headMats = [
                 brownMat, brownMat,
                 brownMat, brownMat,
