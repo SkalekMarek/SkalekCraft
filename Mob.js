@@ -159,9 +159,29 @@ export class Mob {
                                 this.velocity.y = 0;
                             }
                         } else if (axis === 'x') {
+                            // Auto-Step Up Logic
+                            if (this.onGround && y === Math.floor(this.position.y)) {
+                                const blockAbove = this.world.getBlockType(x, y + 1, z);
+                                const blockTwoAbove = this.world.getBlockType(x, y + 2, z);
+                                if ((!blockAbove || blockAbove === 'water') && (!blockTwoAbove || blockTwoAbove === 'water')) {
+                                    this.position.y += 1.1;
+                                    return; // Successfully stepped up, ignore this collision
+                                }
+                            }
+
                             if (this.velocity.x > 0) this.position.x = x - width / 2 - 0.001;
                             else this.position.x = x + 1 + width / 2 + 0.001;
                         } else if (axis === 'z') {
+                            // Auto-Step Up Logic
+                            if (this.onGround && y === Math.floor(this.position.y)) {
+                                const blockAbove = this.world.getBlockType(x, y + 1, z);
+                                const blockTwoAbove = this.world.getBlockType(x, y + 2, z);
+                                if ((!blockAbove || blockAbove === 'water') && (!blockTwoAbove || blockTwoAbove === 'water')) {
+                                    this.position.y += 1.1;
+                                    return; // Successfully stepped up, ignore this collision
+                                }
+                            }
+
                             if (this.velocity.z > 0) this.position.z = z - width / 2 - 0.001;
                             else this.position.z = z + 1 + width / 2 + 0.001;
                         }
