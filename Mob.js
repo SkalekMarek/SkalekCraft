@@ -130,35 +130,6 @@ export class Mob {
             });
 
         } else if (type === 'ulrich') {
-            // Fish model
-            // Body (Horizontal)
-            const bodyGeo = new THREE.BoxGeometry(0.4, 0.6, 1.0); // Thin, tallish, long
-            const fishMat = new THREE.MeshStandardMaterial({ color: 0x44aaaa }); // Teal/Silver
-            this.body = new THREE.Mesh(bodyGeo, fishMat);
-            this.body.position.y = 0.3;
-            // Rotate body to be horizontal effectively if needed, but Box is already aligned Z
-            // Let's add fins
-
-            // Tail
-            const tailGeo = new THREE.BoxGeometry(0.1, 0.4, 0.4);
-            const tail = new THREE.Mesh(tailGeo, fishMat);
-            tail.position.set(0, 0, -0.6);
-            this.body.add(tail);
-
-            // Face
-            const faceGeo = new THREE.PlaneGeometry(0.35, 0.35);
-            const loader = new THREE.TextureLoader();
-            const faceTexture = loader.load('textures/ulrich.jpeg');
-            // faceTexture.rotation = -Math.PI / 2; // Adjust if needed
-            const faceMat = new THREE.MeshBasicMaterial({ map: faceTexture, side: THREE.DoubleSide });
-            const face = new THREE.Mesh(faceGeo, faceMat);
-            face.position.set(0, 0.1, 0.51); // Front
-            this.body.add(face);
-
-            this.group.add(this.body);
-            this.legs = []; // No legs
-
-        } else if (type === 'ulrich') {
             // Wolf Model
             // Body (Grey/Silver)
             const bodyGeo = new THREE.BoxGeometry(0.8, 0.8, 1.3);
@@ -276,7 +247,7 @@ export class Mob {
             this.velocity.y -= 25 * delta;
         }
 
-        // Physics / Movement Intent
+        // Physics / movement Intent
         let moveDir = new THREE.Vector3(0, 0, 0);
 
         // AI: Attraction to Bait
@@ -337,10 +308,12 @@ export class Mob {
             // Walk Animation
             const walkSpeed = 10;
             const time = performance.now() / 1000;
-            this.legs[0].rotation.x = Math.sin(time * walkSpeed) * 0.5;
-            this.legs[1].rotation.x = Math.sin(time * walkSpeed + Math.PI) * 0.5;
-            this.legs[2].rotation.x = Math.sin(time * walkSpeed + Math.PI) * 0.5;
-            this.legs[3].rotation.x = Math.sin(time * walkSpeed) * 0.5;
+            if (this.legs && this.legs.length >= 4) {
+                this.legs[0].rotation.x = Math.sin(time * walkSpeed) * 0.5;
+                this.legs[1].rotation.x = Math.sin(time * walkSpeed + Math.PI) * 0.5;
+                this.legs[2].rotation.x = Math.sin(time * walkSpeed + Math.PI) * 0.5;
+                this.legs[3].rotation.x = Math.sin(time * walkSpeed) * 0.5;
+            }
 
             // Tail Wag (Simple)
             if (this.type === 'ulrich') {
@@ -348,7 +321,7 @@ export class Mob {
                 // In creation: body.add(tail). Tag it?
                 // Just assuming child 0 based on logic, but be careful.
                 // Actually in creation I did body.add(tail) so it's body.children[0]
-                if (this.body.children[0]) {
+                if (this.body && this.body.children[0]) {
                     this.body.children[0].rotation.y = Math.sin(time * 15) * 0.3;
                 }
             }
