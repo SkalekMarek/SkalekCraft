@@ -230,25 +230,26 @@ export class Mob {
 
                 // Scan for water
                 const now = performance.now();
-                if (this.onGround && (!this.lastWaterSearch || now - this.lastWaterSearch > 2000)) { // Check every 2s
+                if (this.onGround && (!this.lastWaterSearch || now - this.lastWaterSearch > 500)) { // Check every 0.5s (more responsive but cheaper)
                     this.lastWaterSearch = now;
-                    const range = 5; // Reduced range from 8 to 5 for performance
                     let bestWater = null;
                     let minDst = 999;
                     const bx = Math.floor(this.position.x);
                     const by = Math.floor(this.position.y);
                     const bz = Math.floor(this.position.z);
+                    const range = 8;
 
-                    for (let x = -range; x <= range; x++) {
-                        for (let z = -range; z <= range; z++) {
-                            for (let y = -2; y <= 2; y++) { // Check nearby heights
-                                if (this.world.getBlockType(bx + x, by + y, bz + z) === 'water') {
-                                    const d = x * x + y * y + z * z;
-                                    if (d < minDst) {
-                                        minDst = d;
-                                        bestWater = new THREE.Vector3(bx + x + 0.5, by + y + 0.5, bz + z + 0.5);
-                                    }
-                                }
+                    // Random Sampling: Check 10 random spots instead of 600+
+                    for (let i = 0; i < 10; i++) {
+                        const rx = Math.floor((Math.random() - 0.5) * 2 * range);
+                        const rz = Math.floor((Math.random() - 0.5) * 2 * range);
+                        const ry = Math.floor((Math.random() - 0.5) * 4); // -2 to 2
+
+                        if (this.world.getBlockType(bx + rx, by + ry, bz + rz) === 'water') {
+                            const d = rx * rx + ry * ry + rz * rz;
+                            if (d < minDst) {
+                                minDst = d;
+                                bestWater = new THREE.Vector3(bx + rx + 0.5, by + ry + 0.5, bz + rz + 0.5);
                             }
                         }
                     }
