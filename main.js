@@ -143,7 +143,6 @@ function updatePlayerCount() {
 // 1. Peer Management
 room.onPeerJoin(peerId => {
     console.log(`${peerId} joined`);
-    updatePlayerCount(`Found peer ${peerId.substr(0, 4)}...`);
     addRemotePlayer(peerId);
     // Wait a split second to ensure connection is stable before sending? 
     // Usually immediate is fine, but let's confirm in UI.
@@ -158,8 +157,7 @@ room.onPeerJoin(peerId => {
 
 function updatePlayerCount(statusOverride) {
     const count = Object.keys(remotePlayers).length + 1;
-    const status = statusOverride || (count > 1 ? "Connected" : "Searching...");
-    document.getElementById('player-count').innerText = `Players: ${count} (${status})`;
+    document.getElementById('player-count').innerText = `Players: ${count}`;
 }
 
 room.onPeerLeave(peerId => {

@@ -68,13 +68,18 @@ export class World {
     }
 
     generateSimple(size = 20) {
-        // Reset seed for consistency
+        // Reset seed for consistency (though hash uses coordinates directly)
         this.seed = 123456;
 
         for (let x = -size; x < size; x++) {
             for (let z = -size; z < size; z++) {
-                // Perlin-ish noise (using sin combination)
-                const h = Math.floor(Math.sin(x * 0.1) * 3 + Math.cos(z * 0.1) * 3);
+                // Deterministic integer noise
+                let n = (x * 15731 + z * 789221 + 1376312589) & 0x7fffffff;
+                n = (n >> 13) ^ n;
+                n = (n * (n * n * 15731 + 789221) + 1376312589) & 0x7fffffff;
+
+                // Height 0-4 range
+                const h = Math.floor((n / 2147483648.0) * 4);
 
                 // Blocks
                 for (let y = -5; y <= h; y++) {
@@ -85,8 +90,11 @@ export class World {
                 }
 
                 // Trees
-                if (x % 7 === 0 && z % 7 === 0 && this.rng() > 0.4) {
-                    this.generateTree(x, h + 1, z);
+                // Use the rng() for probability, consistent order X then Z
+                if (x % 7 === 0 && z % 7 === 0) {
+                    if (this.rng() > 0.3) {
+                        this.generateTree(x, h + 1, z);
+                    }
                 }
             }
         }
