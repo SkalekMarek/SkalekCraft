@@ -35,19 +35,19 @@ export class World {
 
         const materials = {
             grass: new THREE.MeshStandardMaterial({
-                map: loadTexture('grass.png'),
+                map: loadTexture('textures/grass.png'),
                 color: 0x79C05A // Applied "colourmap" green tint
             }),
-            stone: new THREE.MeshStandardMaterial({ map: createTexture('#757575') }),
-            dirt: new THREE.MeshStandardMaterial({ map: createTexture('#5D4037') }),
-            wood: new THREE.MeshStandardMaterial({ map: loadTexture('wood.png') }),
+            stone: new THREE.MeshStandardMaterial({ map: loadTexture('textures/stone.png') }),
+            dirt: new THREE.MeshStandardMaterial({ map: loadTexture('textures/dirt.png') }),
+            wood: new THREE.MeshStandardMaterial({ map: loadTexture('textures/wood.png') }),
             leaves: new THREE.MeshStandardMaterial({
-                map: loadTexture('azalea_leaves.png'),
+                map: loadTexture('textures/azalea_leaves.png'),
                 transparent: true,
                 alphaTest: 0.5,
                 side: THREE.DoubleSide
             }),
-            sand: new THREE.MeshStandardMaterial({ map: loadTexture('sand.png') }),
+            sand: new THREE.MeshStandardMaterial({ map: loadTexture('textures/sand.png') }),
             bedrock: new THREE.MeshStandardMaterial({ map: createTexture('#1a1a1a') }),
             water: new THREE.MeshStandardMaterial({ // Instanced water for simple check, though custom mesh system handles rendering
                 color: 0x244F99, transparent: true, opacity: 0.7, side: THREE.DoubleSide

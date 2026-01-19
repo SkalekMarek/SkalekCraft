@@ -32,7 +32,7 @@ export class Mob {
         const headGeo = new THREE.BoxGeometry(0.7, 0.7, 0.7);
         // Face Texture
         const loader = new THREE.TextureLoader();
-        const faceTexture = loader.load(type + '.png'); // ceca.png
+        const faceTexture = loader.load('textures/' + type + '.png'); // ceca.png -> textures/ceca.png
         faceTexture.magFilter = THREE.NearestFilter;
 
         const faceMat = new THREE.MeshStandardMaterial({ map: faceTexture });

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { World } from './World.js?v=15';
+import { World } from './World.js?v=16';
 import { Player } from './Player.js';
 import { Mob } from './Mob.js?v=11';
 
@@ -86,7 +86,7 @@ slots.forEach((s, i) => {
         if (types[i] === 'bedrock') color = '#1a1a1a';
         if (types[i] === 'water') color = '#244F99';
         if (types[i] === 'cecabait') {
-            s.style.backgroundImage = `url('cecabait.jpg')`;
+            s.style.backgroundImage = `url('textures/cecabait.jpg')`;
             s.style.backgroundSize = 'cover';
             s.style.backgroundColor = 'transparent';
         } else {
