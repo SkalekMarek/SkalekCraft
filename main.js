@@ -84,6 +84,10 @@ slots.forEach((s, i) => {
             s.style.backgroundImage = `url('textures/cecabait.jpg')`;
         } else if (types[i] === 'water') {
             s.style.backgroundColor = '#244F99'; // Keep color for water as no texture
+        } else if (types[i] === 'grass') {
+            s.style.backgroundImage = `url('textures/grass.png')`;
+            s.style.backgroundColor = '#79C05A'; // Green tint
+            s.style.backgroundBlendMode = 'multiply';
         } else {
             // Block textures
             s.style.backgroundImage = `url('textures/${types[i]}.png')`;
