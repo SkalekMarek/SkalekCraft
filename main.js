@@ -57,7 +57,7 @@ function updateHotbar() {
     });
 }
 // Init icons
-const types = ['grass', 'stone', 'dirt', 'wood', null, 'water', null, 'stone', null];
+const types = ['grass', 'stone', 'dirt', 'wood', null, 'water', null, null, null];
 slots.forEach((s, i) => {
     if (types[i]) {
         // Simple color approximation for icon
