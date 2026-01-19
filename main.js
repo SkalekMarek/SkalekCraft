@@ -25,7 +25,7 @@ scene.add(dirLight);
 
 // --- GAME OBJECTS ---
 const world = new World(scene);
-world.generateSimple(75); // Increased Size 150x150
+world.generateSimple(100); // Increased Size 200x200
 
 const player = new Player(camera, document.body, world);
 
