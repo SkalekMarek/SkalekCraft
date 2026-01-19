@@ -229,8 +229,10 @@ export class Mob {
                 this.velocity.z *= 0.5;
 
                 // Scan for water
-                if (this.onGround && Math.random() < 0.1) { // Hop occasionally
-                    const range = 8;
+                const now = performance.now();
+                if (this.onGround && (!this.lastWaterSearch || now - this.lastWaterSearch > 2000)) { // Check every 2s
+                    this.lastWaterSearch = now;
+                    const range = 5; // Reduced range from 8 to 5 for performance
                     let bestWater = null;
                     let minDst = 999;
                     const bx = Math.floor(this.position.x);
