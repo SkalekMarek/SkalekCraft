@@ -183,13 +183,19 @@ export class World {
 
         for (let x = -size; x < size; x++) {
             for (let z = -size; z < size; z++) {
-                // Deterministic integer noise
-                let n = (x * 15731 + z * 789221 + 1376312589) & 0x7fffffff;
-                n = (n >> 13) ^ n;
-                n = (n * (n * n * 15731 + 789221) + 1376312589) & 0x7fffffff;
+                // Smooth Terrain (Sine Waves) for Coherent Lakes
+                // Large waves for hills/lakes
+                const largeWave = Math.sin(x / 25) * Math.cos(z / 25);
+                // Small waves for detail
+                const smallWave = Math.sin(x / 8) * Math.cos(z / 8);
 
-                // Base Height: -3 to 6
-                let h = Math.floor((n / 2147483648.0) * 10) - 3;
+                // Combine: Primarily large wave, bit of detail (Range approx -1.3 to 1.3)
+                let noise = largeWave + (smallWave * 0.3);
+
+                // Scale and Offset
+                // We want lakes to be smaller, so bias UP (+2 or +3)
+                // Range becomes: ((-1.3 to 1.3) * 6) + 2 => -5.8 to 9.8
+                let h = Math.floor(noise * 6 + 2);
 
                 // Edge Mask (Force borders UP)
                 // Distance from center
@@ -219,10 +225,10 @@ export class World {
                 }
 
                 // Trees (Random density, no grid)
-                // Only on grass (land)
+                // Only on land and enough space
                 if (h >= waterLevel) {
-                    // 1 in 80 chance (~1.25%)
-                    if (this.rng() < 0.0125) {
+                    // 1 in 60 chance (~1.6%)
+                    if (this.rng() < 0.016) {
                         // Random Tree Type
                         if (this.rng() > 0.5) {
                             this.generateTree(x, h + 1, z);

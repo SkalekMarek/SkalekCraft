@@ -1,8 +1,105 @@
 body {
     margin: 0;
     overflow: hidden;
-    background-color: #87CEEB; /* Sky blue fallback */
+    background-color: #87CEEB;
+    user-select: none;
+    font-family: Arial, sans-serif;
 }
+
 canvas {
     display: block;
+}
+
+#ui {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+#crosshair {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M9 0h2v9h9v2h-9v9H9v-9H0V9h9z" fill="white" stroke="black" stroke-width="1"/></svg>') no-repeat center;
+    transform: translate(-50%, -50%);
+}
+
+#hotbar {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    background-color: rgba(0, 0, 0, 0.5);
+    padding: 5px;
+    border-radius: 5px;
+    transition: transform 0.1s;
+    pointer-events: auto;
+    /* Allow clicking */
+}
+
+.slot {
+    width: 50px;
+    height: 50px;
+    border: 3px solid #555;
+    margin: 0 3px;
+    background-color: #888;
+    image-rendering: pixelated;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.5);
+    position: relative;
+    cursor: pointer;
+}
+
+.active {
+    border-color: white;
+    transform: scale(1.1);
+    z-index: 10;
+}
+
+.slot-number {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    font-size: 10px;
+    color: gold;
+}
+
+#info {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    color: white;
+    font-family: monospace;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 5px;
+    pointer-events: none;
+}
+
+#block-count {
+    position: absolute;
+    top: 40px;
+    left: 10px;
+    color: #eee;
+    font-family: monospace;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 5px;
+}
+
+#player-count {
+    position: absolute;
+    top: 70px;
+    left: 10px;
+    color: #eee;
+    font-family: monospace;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 5px;
 }
