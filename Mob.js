@@ -218,16 +218,16 @@ export class Mob {
             tail.rotation.x = -0.5;
             this.body.add(tail);
 
-            // Legs (Smaller)
+            // Legs (Smaller Cubes)
             this.legs = [];
-            const legGeo = new THREE.BoxGeometry(0.15, 0.4, 0.15);
+            const legGeo = new THREE.BoxGeometry(0.15, 0.15, 0.15); // Cubic
             const legPos = [
                 { x: -0.15, z: 0.25 }, { x: 0.15, z: 0.25 },
                 { x: -0.15, z: -0.25 }, { x: 0.15, z: -0.25 }
             ];
             legPos.forEach(p => {
                 const leg = new THREE.Mesh(legGeo, furMat);
-                leg.position.set(p.x, 0.2, p.z);
+                leg.position.set(p.x, 0.075, p.z); // Adjust y pos for smaller height
                 this.legs.push(leg);
                 this.group.add(leg);
             });
@@ -408,7 +408,10 @@ export class Mob {
                             }
                         } else if (axis === 'x') {
                             // Auto-Step Up Logic
-                            if (this.onGround && y === Math.floor(this.position.y)) {
+                            const headBlock = this.world.getBlockType(Math.floor(this.position.x), Math.floor(this.position.y + 0.5), Math.floor(this.position.z));
+                            const inWater = (headBlock === 'water');
+
+                            if ((this.onGround || inWater) && y === Math.floor(this.position.y)) {
                                 const blockAbove = this.world.getBlockType(x, y + 1, z);
                                 const blockTwoAbove = this.world.getBlockType(x, y + 2, z);
                                 if ((!blockAbove || blockAbove === 'water') && (!blockTwoAbove || blockTwoAbove === 'water')) {
@@ -421,7 +424,10 @@ export class Mob {
                             else this.position.x = x + 1 + width / 2 + 0.001;
                         } else if (axis === 'z') {
                             // Auto-Step Up Logic
-                            if (this.onGround && y === Math.floor(this.position.y)) {
+                            const headBlock = this.world.getBlockType(Math.floor(this.position.x), Math.floor(this.position.y + 0.5), Math.floor(this.position.z));
+                            const inWater = (headBlock === 'water');
+
+                            if ((this.onGround || inWater) && y === Math.floor(this.position.y)) {
                                 const blockAbove = this.world.getBlockType(x, y + 1, z);
                                 const blockTwoAbove = this.world.getBlockType(x, y + 2, z);
                                 if ((!blockAbove || blockAbove === 'water') && (!blockTwoAbove || blockTwoAbove === 'water')) {
