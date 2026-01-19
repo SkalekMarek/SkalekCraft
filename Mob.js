@@ -290,7 +290,6 @@ export class Mob {
             if (this.type === 'ceca' && isHoldingBait === 'cecabait') attracted = true;
             if (this.type === 'bohy' && isHoldingBait === 'bohybait') attracted = true;
             if (this.type === 'kohoutek' && isHoldingBait === 'kohoutekbait') attracted = true;
-            if (this.type === 'ulrich' && isHoldingBait === 'ulrichbait') attracted = true;
         }
 
         if (attracted) {
@@ -315,17 +314,7 @@ export class Mob {
             }
         }
 
-        // Special restriction for Ulrich: Stay in water if already in water
-        if (this.type === 'ulrich' && inWater && !attracted) {
-            // If moveDir would take us into non-water, cancel or invert it?
-            // Simple check: Look ahead
-            const nextPos = this.position.clone().add(moveDir.clone().multiplyScalar(0.5));
-            const nextBlock = this.world.getBlockType(Math.floor(nextPos.x), Math.floor(nextPos.y), Math.floor(nextPos.z));
-            if (nextBlock !== 'water') {
-                moveDir.set(0, 0, 0); // Don't swim onto land
-                this.isWandering = false; // Pick new dir later
-            }
-        }
+
 
         // Apply Horizontal Velocity (with friction/acceleration)
         const speed = 3.0;
@@ -355,10 +344,7 @@ export class Mob {
             this.legs[2].rotation.x = Math.sin(time * walkSpeed + Math.PI) * 0.5;
             this.legs[3].rotation.x = Math.sin(time * walkSpeed) * 0.5;
 
-            // Ulrich Tail Wag
-            if (this.type === 'ulrich') {
-                this.body.children[0].rotation.y = Math.sin(time * 20) * 0.5; // Tail is 1st child
-            }
+
         } else {
             // Reset legs
             if (this.legs) this.legs.forEach(l => l.rotation.x = 0);
