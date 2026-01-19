@@ -40,8 +40,10 @@ function spawnMob(type, x, y, z) {
 }
 
 // Initial Spawn (Randomly around center)
-for (let i = 0; i < 5; i++) {
-    spawnMob('ceca', (Math.random() - 0.5) * 20, 20, (Math.random() - 0.5) * 20);
+// Initial Spawn (Randomly around center)
+for (let i = 0; i < 6; i++) {
+    const type = Math.random() > 0.5 ? 'ceca' : 'bohy';
+    spawnMob(type, (Math.random() - 0.5) * 20, 20, (Math.random() - 0.5) * 20);
 }
 
 
@@ -73,7 +75,8 @@ function updateHotbar() {
 }
 // Init icons
 // Init icons
-const types = ['grass', 'stone', 'dirt', 'wood', 'water', 'cecabait', null, null, null];
+// Init icons
+const types = ['grass', 'stone', 'dirt', 'wood', 'water', 'cecabait', 'bohybait', null, null];
 slots.forEach((s, i) => {
     if (types[i]) {
         // Default to transparent background color to show texture
@@ -82,6 +85,8 @@ slots.forEach((s, i) => {
 
         if (types[i] === 'cecabait') {
             s.style.backgroundImage = `url('textures/cecabait.jpg')`;
+        } else if (types[i] === 'bohybait') {
+            s.style.backgroundImage = `url('textures/bohybait.jpg')`;
         } else if (types[i] === 'water') {
             s.style.backgroundColor = '#244F99'; // Keep color for water as no texture
         } else if (types[i] === 'grass') {
@@ -147,8 +152,10 @@ window.addEventListener('mousedown', (e) => {
             const dz = Math.abs(pos.z - pPos.z);
             if (dx < 0.8 && dy < 1.8 && dz < 0.8) return;
 
-            if (types[selectedSlot] === 'cecabait') {
-                spawnMob('ceca', pos.x, pos.y + 1, pos.z);
+            if (types[selectedSlot] && types[selectedSlot].includes('bait')) {
+                // Remove 'bait' suffix to get mob type
+                const mobType = types[selectedSlot].replace('bait', '');
+                spawnMob(mobType, pos.x, pos.y + 1, pos.z);
                 return;
             }
 
@@ -284,8 +291,8 @@ function animate() {
 
     // Mob Updates
     const currentItem = types[selectedSlot];
-    const isHoldingBait = (currentItem === 'cecabait');
-    mobs.forEach(m => m.update(delta, player.camera.position, isHoldingBait));
+    // Pass the item name directly so mob can check if it's the right bait
+    mobs.forEach(m => m.update(delta, player.camera.position, currentItem));
 
     // Broadcast Position
     if (time - lastBroadcast > broadcastRate) {

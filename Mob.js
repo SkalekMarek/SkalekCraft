@@ -20,46 +20,88 @@ export class Mob {
     }
 
     createModel(type) {
-        // Pig-like model
-        // Body
-        const bodyGeo = new THREE.BoxGeometry(0.8, 0.8, 1.2);
-        const pinkMat = new THREE.MeshStandardMaterial({ color: 0xFFC0CB }); // Pink
-        this.body = new THREE.Mesh(bodyGeo, pinkMat);
-        this.body.position.y = 0.6;
-        this.group.add(this.body);
+        if (type === 'bohy') {
+            // Chicken-like model
+            // Body (White)
+            const bodyGeo = new THREE.BoxGeometry(0.6, 0.6, 0.8);
+            const whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
+            this.body = new THREE.Mesh(bodyGeo, whiteMat);
+            this.body.position.y = 0.5;
+            this.group.add(this.body);
 
-        // Head
-        const headGeo = new THREE.BoxGeometry(0.7, 0.7, 0.7);
-        // Face Texture
-        const loader = new THREE.TextureLoader();
-        const faceTexture = loader.load('textures/' + type + '.png'); // ceca.png -> textures/ceca.png
-        faceTexture.magFilter = THREE.NearestFilter;
+            // Head
+            const headGeo = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+            const loader = new THREE.TextureLoader();
+            const faceTexture = loader.load('textures/bohy.png');
+            faceTexture.magFilter = THREE.NearestFilter;
+            const faceMat = new THREE.MeshStandardMaterial({ map: faceTexture });
 
-        const faceMat = new THREE.MeshStandardMaterial({ map: faceTexture });
-        const headMats = [
-            pinkMat, pinkMat, // x
-            pinkMat, pinkMat, // y
-            faceMat, pinkMat  // z (face is usually +z or -z depending on orientation)
-        ];
+            const headMats = [
+                whiteMat, whiteMat,
+                whiteMat, whiteMat,
+                faceMat, whiteMat
+            ];
+            this.head = new THREE.Mesh(headGeo, headMats);
+            this.head.position.set(0, 0.9, 0.5);
+            this.group.add(this.head);
 
-        this.head = new THREE.Mesh(headGeo, headMats);
-        this.head.position.set(0, 1.1, 0.8); // Slightly forward and up
-        this.group.add(this.head);
+            // Legs (Yellow)
+            this.legs = [];
+            const legGeo = new THREE.BoxGeometry(0.15, 0.5, 0.15);
+            const yellowMat = new THREE.MeshStandardMaterial({ color: 0xFFFF00 });
+            const legPos = [
+                { x: -0.2, z: 0.1 }, { x: 0.2, z: 0.1 },
+                { x: -0.2, z: -0.1 }, { x: 0.2, z: -0.1 }
+            ];
+            legPos.forEach(p => {
+                const leg = new THREE.Mesh(legGeo, yellowMat);
+                leg.position.set(p.x, 0.25, p.z);
+                this.legs.push(leg);
+                this.group.add(leg);
+            });
 
-        // Legs
-        this.legs = [];
-        const legGeo = new THREE.BoxGeometry(0.25, 0.6, 0.25);
-        const legPos = [
-            { x: -0.25, z: 0.4 }, { x: 0.25, z: 0.4 },
-            { x: -0.25, z: -0.4 }, { x: 0.25, z: -0.4 }
-        ];
+        } else {
+            // Pig-like model (Ceca)
+            // Body
+            const bodyGeo = new THREE.BoxGeometry(0.8, 0.8, 1.2);
+            const pinkMat = new THREE.MeshStandardMaterial({ color: 0xFFC0CB }); // Pink
+            this.body = new THREE.Mesh(bodyGeo, pinkMat);
+            this.body.position.y = 0.6;
+            this.group.add(this.body);
 
-        legPos.forEach(p => {
-            const leg = new THREE.Mesh(legGeo, pinkMat);
-            leg.position.set(p.x, 0.3, p.z);
-            this.legs.push(leg);
-            this.group.add(leg);
-        });
+            // Head
+            const headGeo = new THREE.BoxGeometry(0.7, 0.7, 0.7);
+            // Face Texture
+            const loader = new THREE.TextureLoader();
+            const faceTexture = loader.load('textures/' + type + '.png'); // ceca.png -> textures/ceca.png
+            faceTexture.magFilter = THREE.NearestFilter;
+
+            const faceMat = new THREE.MeshStandardMaterial({ map: faceTexture });
+            const headMats = [
+                pinkMat, pinkMat, // x
+                pinkMat, pinkMat, // y
+                faceMat, pinkMat  // z (face is usually +z or -z depending on orientation)
+            ];
+
+            this.head = new THREE.Mesh(headGeo, headMats);
+            this.head.position.set(0, 1.1, 0.8); // Slightly forward and up
+            this.group.add(this.head);
+
+            // Legs
+            this.legs = [];
+            const legGeo = new THREE.BoxGeometry(0.25, 0.6, 0.25);
+            const legPos = [
+                { x: -0.25, z: 0.4 }, { x: 0.25, z: 0.4 },
+                { x: -0.25, z: -0.4 }, { x: 0.25, z: -0.4 }
+            ];
+
+            legPos.forEach(p => {
+                const leg = new THREE.Mesh(legGeo, pinkMat);
+                leg.position.set(p.x, 0.3, p.z);
+                this.legs.push(leg);
+                this.group.add(leg);
+            });
+        }
     }
 
     update(delta, playerPos, isHoldingBait) {
@@ -80,7 +122,13 @@ export class Mob {
         let moveDir = new THREE.Vector3(0, 0, 0);
 
         // AI: Attraction to Bait
-        if (isHoldingBait && this.type === 'ceca') { // Only Ceca likes cecabait
+        let attracted = false;
+        if (isHoldingBait) {
+            if (this.type === 'ceca' && isHoldingBait === 'cecabait') attracted = true;
+            if (this.type === 'bohy' && isHoldingBait === 'bohybait') attracted = true;
+        }
+
+        if (attracted) {
             const dist = this.position.distanceTo(playerPos);
             if (dist < 20 && dist > 2.5) { // Stop 1 block away (approx 1.5 + radius)
                 moveDir.subVectors(playerPos, this.position).normalize();
