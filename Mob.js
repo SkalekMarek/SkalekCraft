@@ -67,6 +67,14 @@ export class Mob {
         // Gravity
         this.velocity.y -= 25 * delta;
 
+        // Water Physics (Swimming)
+        const headBlock = this.world.getBlockType(Math.floor(this.position.x), Math.floor(this.position.y + 0.5), Math.floor(this.position.z));
+        if (headBlock === 'water') {
+            this.velocity.y = 5; // Float up like holding space
+            this.velocity.x *= 0.8; // Water resistance
+            this.velocity.z *= 0.8;
+        }
+
         // Physics / Movement Intent
         let moveDir = new THREE.Vector3(0, 0, 0);
 
