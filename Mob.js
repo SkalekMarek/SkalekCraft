@@ -9,7 +9,7 @@ export class Mob {
         this.isDead = false;
 
         // Visuals
-        const geometry = new THREE.PlaneGeometry(1, 1);
+        const geometry = new THREE.BoxGeometry(0.6, 1.8, 0.6); // Player-like dimensions
         let texturePath = `${type}.png`; // bohy.png, ceca.png, kohoutek.png
 
         // Load Texture
@@ -18,19 +18,27 @@ export class Mob {
         texture.magFilter = THREE.NearestFilter;
         texture.colorSpace = THREE.SRGBColorSpace;
 
-        const material = new THREE.MeshBasicMaterial({
+        // Map texture to all sides? Or just "Face"? 
+        // For simplicity, applying same texture to all sides, or a color + face?
+        // Let's apply texture to all sides but maybe mainly front.
+        // If image is a "face" or "sprite", wrapping it around a box might look weird but it's "3D".
+        // Better: Material array. If I only have one texture, I'll use it everywhere.
+
+        const material = new THREE.MeshStandardMaterial({
             map: texture,
             transparent: true,
-            side: THREE.DoubleSide,
             alphaTest: 0.5
         });
 
         this.mesh = new THREE.Mesh(geometry, material);
         this.mesh.position.copy(this.position);
 
-        // Center the sprite vertically (it's 1 unit high, so +0.5 to sit on ground)
-        // Actually, let's keep pivot at center for now and adjust rendering
-        this.mesh.position.y += 0.5;
+        // Pivot/Offset
+        // Geometry is centered, so (0,0,0) is center of box.
+        // We want feet at position.y. Height is 1.8. Center is 0.9.
+        this.mesh.position.y += 0.9;
+
+        // Face Mesh (Optional additions if we want to model more complexly, but Box is start)
 
         this.world.scene.add(this.mesh);
 
@@ -84,10 +92,16 @@ export class Mob {
 
         // Update Mesh
         this.mesh.position.copy(this.position);
-        this.mesh.position.y += 0.5; // Offset visual
+        this.mesh.position.y += 0.9; // Offset visual center
 
-        // Billboard: Face camera (Player)
-        this.mesh.lookAt(player.camera.position.x, this.mesh.position.y, player.camera.position.z);
+        // Rotation: Face movement direction? Or Player?
+        // Real mobs face their movement or player.
+        // Let's face movement if moving, else player?
+        // Simple: Face player for now, or just rotate Y based on movement.
+        if (this.velocity.x !== 0 || this.velocity.z !== 0) {
+            const angle = Math.atan2(this.velocity.x, this.velocity.z);
+            this.mesh.rotation.y = angle;
+        }
     }
 
     checkCollision() {

@@ -141,8 +141,7 @@ window.addEventListener('mousedown', (e) => {
             if (type.includes('bait')) {
                 const mobType = type.replace('bait', '');
                 world.spawnMob(bx + 0.5, by, bz + 0.5, mobType);
-                // Also send network event for mob spawn? Not requested yet, keeping local first or basic sync?
-                // User didn't explicitly ask for multiplayer mobs, so keeping local for now.
+                sendMob({ action: 'spawn', x: bx + 0.5, y: by, z: bz + 0.5, type: mobType });
                 return;
             }
 
@@ -160,6 +159,8 @@ window.addEventListener('mousedown', (e) => {
         const hitMesh = mobIntersects[0].object;
         const mob = world.mobs.find(m => m.mesh === hitMesh);
         if (mob) {
+            const p = mob.position;
+            sendMob({ action: 'die', x: p.x, y: p.y, z: p.z, type: mob.type });
             mob.takeDamage();
         }
     }
@@ -185,6 +186,7 @@ const room = joinRoom(roomConfig, 'main-lobby');
 // Actions
 const [sendMove, getMove] = room.makeAction('move');
 const [sendBlock, getBlock] = room.makeAction('block');
+const [sendMob, getMob] = room.makeAction('mob');
 
 const remotePlayers = {};
 
@@ -231,6 +233,27 @@ getBlock((data, peerId) => {
         world.placeBlock(data.x, data.y, data.z, data.type);
     } else if (data.action === 'remove') {
         world.removeBlockAt(data.x, data.y, data.z);
+    }
+});
+
+// 4. Mob Updates
+getMob((data, peerId) => {
+    if (data.action === 'spawn') {
+        world.spawnMob(data.x, data.y, data.z, data.type);
+    } else if (data.action === 'die') {
+        const mobs = world.mobs.filter(m => m.type === data.type && !m.isDead);
+        let closest = null;
+        let minDst = 2.0;
+        for (const m of mobs) {
+            const dst = m.position.distanceTo(new THREE.Vector3(data.x, data.y, data.z));
+            if (dst < minDst) {
+                minDst = dst;
+                closest = m;
+            }
+        }
+        if (closest) {
+            closest.takeDamage();
+        }
     }
 });
 

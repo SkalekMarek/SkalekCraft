@@ -238,6 +238,14 @@ export class World {
                             this.generatePointyTree(x, h + 1, z);
                         }
                     }
+
+                    // Natural Mob Spawning (Rare)
+                    // 1 in 300 chance (~0.3%)
+                    if (this.rng() < 0.003) {
+                        const mobTypes = ['bohy', 'ceca', 'kohoutek'];
+                        const type = mobTypes[Math.floor(this.rng() * mobTypes.length)];
+                        this.spawnMob(x + 0.5, h + 1, z + 0.5, type);
+                    }
                 }
             }
         }
