@@ -130,16 +130,18 @@ export class Mob {
             });
 
         } else if (type === 'ulrich') {
-            // Wolf Model
+            // Wolf Model (Smaller, No Snout, Ears)
             // Body (Grey/Silver)
-            const bodyGeo = new THREE.BoxGeometry(0.8, 0.8, 1.3);
+            // Reduced size: 0.8 -> 0.5, 1.3 -> 0.9
+            const bodyGeo = new THREE.BoxGeometry(0.5, 0.5, 0.9);
             const furMat = new THREE.MeshStandardMaterial({ color: 0x999999 }); // Grey
             this.body = new THREE.Mesh(bodyGeo, furMat);
-            this.body.position.y = 0.6;
+            this.body.position.y = 0.4; // Lower due to size
             this.group.add(this.body);
 
             // Head
-            const headGeo = new THREE.BoxGeometry(0.7, 0.7, 0.7);
+            // Reduced size: 0.7 -> 0.45
+            const headGeo = new THREE.BoxGeometry(0.45, 0.45, 0.45);
             const loader = new THREE.TextureLoader();
             const faceTexture = loader.load('textures/ulrich.jpeg');
             faceTexture.magFilter = THREE.NearestFilter;
@@ -153,33 +155,79 @@ export class Mob {
             ];
 
             this.head = new THREE.Mesh(headGeo, headMats);
-            this.head.position.set(0, 1.2, 0.9);
+            this.head.position.set(0, 0.5, 0.7); // Adjusted pos relative to body
+            this.body.add(this.head); // Attach to body so it moves with it? logic below adds to group logic usually.
+            // Wait, previous code added head to group. Let's keep consistency.
+            // Previous: head.position.set(0, 1.2, 0.9); group.add(head);
+            // Let's attach head to body for better animation potential later? 
+            // The existing code for other mobs adds head to group. I will stick to group for safety unless I want to change animation logic.
+            // Actually, attaching to body makes "body rotation" rotate head too.
+            // But let's stick to the pattern: group.add(head).
+            // New pos needs to match scaled body. Body center is y=0.4. Height=0.5. Top=0.65.
+            // Head center y should be around 0.8.
+
+            // Re-evaluating attachment:
+            // logic in update() doesn't rotate body x/z, so group structure is fine.
+            // Let's use group.add(head)
+
+            // Resetting head parentage to group to match others.
+        } else if (type === 'ulrich') {
+            // Wolf Model (Refined: Smaller, Ears, No Snout)
+
+            // Body 
+            const bodyGeo = new THREE.BoxGeometry(0.5, 0.5, 0.9);
+            const furMat = new THREE.MeshStandardMaterial({ color: 0x999999 });
+            this.body = new THREE.Mesh(bodyGeo, furMat);
+            this.body.position.y = 0.5;
+            this.group.add(this.body);
+
+            // Head (Smaller)
+            const headGeo = new THREE.BoxGeometry(0.4, 0.4, 0.4);
+            const loader = new THREE.TextureLoader();
+            const faceTexture = loader.load('textures/ulrich.jpeg');
+            faceTexture.magFilter = THREE.NearestFilter;
+            const faceMat = new THREE.MeshStandardMaterial({ map: faceTexture });
+
+            const headMats = [
+                furMat, furMat,
+                furMat, furMat,
+                faceMat, furMat
+            ];
+
+            this.head = new THREE.Mesh(headGeo, headMats);
+            this.head.position.set(0, 0.95, 0.65); // Just above body front
             this.group.add(this.head);
 
-            // Snout
-            const snoutGeo = new THREE.BoxGeometry(0.3, 0.3, 0.4);
-            const snout = new THREE.Mesh(snoutGeo, furMat);
-            snout.position.set(0, 0, 0.55); // Stick out from head
-            this.head.add(snout);
+            // Ears (New!)
+            const earGeo = new THREE.BoxGeometry(0.1, 0.15, 0.1);
+            // Left Ear
+            const earL = new THREE.Mesh(earGeo, furMat);
+            earL.position.set(-0.12, 0.25, -0.05); // Top of head
+            this.head.add(earL);
+            // Right Ear
+            const earR = new THREE.Mesh(earGeo, furMat);
+            earR.position.set(0.12, 0.25, -0.05);
+            this.head.add(earR);
 
-            // Tail
-            const tailGeo = new THREE.BoxGeometry(0.2, 0.2, 0.8);
+            // NO SNOUT explicitly
+
+            // Tail (Smaller)
+            const tailGeo = new THREE.BoxGeometry(0.12, 0.12, 0.5);
             const tail = new THREE.Mesh(tailGeo, furMat);
-            tail.position.set(0, 0.2, -0.8);
-            // Angle tail down slightly
+            tail.position.set(0, 0.1, -0.5);
             tail.rotation.x = -0.5;
             this.body.add(tail);
 
-            // Legs
+            // Legs (Smaller)
             this.legs = [];
-            const legGeo = new THREE.BoxGeometry(0.25, 0.6, 0.25);
+            const legGeo = new THREE.BoxGeometry(0.15, 0.4, 0.15);
             const legPos = [
-                { x: -0.25, z: 0.4 }, { x: 0.25, z: 0.4 },
-                { x: -0.25, z: -0.4 }, { x: 0.25, z: -0.4 }
+                { x: -0.15, z: 0.25 }, { x: 0.15, z: 0.25 },
+                { x: -0.15, z: -0.25 }, { x: 0.15, z: -0.25 }
             ];
             legPos.forEach(p => {
                 const leg = new THREE.Mesh(legGeo, furMat);
-                leg.position.set(p.x, 0.3, p.z);
+                leg.position.set(p.x, 0.2, p.z);
                 this.legs.push(leg);
                 this.group.add(leg);
             });
