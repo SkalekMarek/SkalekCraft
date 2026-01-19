@@ -158,6 +158,61 @@ export class Mob {
             this.group.add(this.body);
             this.legs = []; // No legs
 
+        } else if (type === 'ulrich') {
+            // Wolf Model
+            // Body (Grey/Silver)
+            const bodyGeo = new THREE.BoxGeometry(0.8, 0.8, 1.3);
+            const furMat = new THREE.MeshStandardMaterial({ color: 0x999999 }); // Grey
+            this.body = new THREE.Mesh(bodyGeo, furMat);
+            this.body.position.y = 0.6;
+            this.group.add(this.body);
+
+            // Head
+            const headGeo = new THREE.BoxGeometry(0.7, 0.7, 0.7);
+            const loader = new THREE.TextureLoader();
+            const faceTexture = loader.load('textures/ulrich.jpeg');
+            faceTexture.magFilter = THREE.NearestFilter;
+            const faceMat = new THREE.MeshStandardMaterial({ map: faceTexture });
+
+            // Apply face to front, fur to others
+            const headMats = [
+                furMat, furMat, // x
+                furMat, furMat, // y
+                faceMat, furMat // z
+            ];
+
+            this.head = new THREE.Mesh(headGeo, headMats);
+            this.head.position.set(0, 1.2, 0.9);
+            this.group.add(this.head);
+
+            // Snout
+            const snoutGeo = new THREE.BoxGeometry(0.3, 0.3, 0.4);
+            const snout = new THREE.Mesh(snoutGeo, furMat);
+            snout.position.set(0, 0, 0.55); // Stick out from head
+            this.head.add(snout);
+
+            // Tail
+            const tailGeo = new THREE.BoxGeometry(0.2, 0.2, 0.8);
+            const tail = new THREE.Mesh(tailGeo, furMat);
+            tail.position.set(0, 0.2, -0.8);
+            // Angle tail down slightly
+            tail.rotation.x = -0.5;
+            this.body.add(tail);
+
+            // Legs
+            this.legs = [];
+            const legGeo = new THREE.BoxGeometry(0.25, 0.6, 0.25);
+            const legPos = [
+                { x: -0.25, z: 0.4 }, { x: 0.25, z: 0.4 },
+                { x: -0.25, z: -0.4 }, { x: 0.25, z: -0.4 }
+            ];
+            legPos.forEach(p => {
+                const leg = new THREE.Mesh(legGeo, furMat);
+                leg.position.set(p.x, 0.3, p.z);
+                this.legs.push(leg);
+                this.group.add(leg);
+            });
+
         } else {
             // Pig-like model (Ceca)
             // Body
@@ -230,6 +285,7 @@ export class Mob {
             if (this.type === 'ceca' && isHoldingBait === 'cecabait') attracted = true;
             if (this.type === 'bohy' && isHoldingBait === 'bohybait') attracted = true;
             if (this.type === 'kohoutek' && isHoldingBait === 'kohoutekbait') attracted = true;
+            if (this.type === 'ulrich' && isHoldingBait === 'ulrichbait') attracted = true;
         }
 
         if (attracted) {
@@ -257,7 +313,9 @@ export class Mob {
 
 
         // Apply Horizontal Velocity (with friction/acceleration)
-        const speed = 3.0;
+        let speed = 3.0;
+        if (this.type === 'ulrich') speed = 5.0; // Faster wolf
+
         this.velocity.x = moveDir.x * speed;
         this.velocity.z = moveDir.z * speed;
 
@@ -284,6 +342,16 @@ export class Mob {
             this.legs[2].rotation.x = Math.sin(time * walkSpeed + Math.PI) * 0.5;
             this.legs[3].rotation.x = Math.sin(time * walkSpeed) * 0.5;
 
+            // Tail Wag (Simple)
+            if (this.type === 'ulrich') {
+                // Tail is last child of body usually? No, let's find it. 
+                // In creation: body.add(tail). Tag it?
+                // Just assuming child 0 based on logic, but be careful.
+                // Actually in creation I did body.add(tail) so it's body.children[0]
+                if (this.body.children[0]) {
+                    this.body.children[0].rotation.y = Math.sin(time * 15) * 0.3;
+                }
+            }
 
         } else {
             // Reset legs

@@ -46,7 +46,7 @@ for (let i = 0; i < 6; i++) {
     let type = 'ceca';
     if (r < 0.33) type = 'bohy';
     else if (r < 0.66) type = 'kohoutek';
-
+    else type = 'ulrich';
 
     spawnMob(type, (Math.random() - 0.5) * 20, 20, (Math.random() - 0.5) * 20);
 }
@@ -81,7 +81,7 @@ function updateHotbar() {
 // Init icons
 // Init icons
 // Init icons
-const types = ['grass', 'stone', 'dirt', 'wood', 'water', 'cecabait', 'bohybait', 'kohoutekbait', null];
+const types = ['grass', 'stone', 'dirt', 'wood', 'water', 'cecabait', 'bohybait', 'kohoutekbait', 'ulrichbait'];
 slots.forEach((s, i) => {
     if (types[i]) {
         // Default to transparent background color to show texture
@@ -94,6 +94,8 @@ slots.forEach((s, i) => {
             s.style.backgroundImage = `url('textures/bohybait.jpg')`;
         } else if (types[i] === 'kohoutekbait') {
             s.style.backgroundImage = `url('textures/kohoutekbait.jpg')`;
+        } else if (types[i] === 'ulrichbait') {
+            s.style.backgroundImage = `url('textures/ulrichbait.png')`;
         } else if (types[i] === 'water') {
             s.style.backgroundColor = '#244F99'; // Keep color for water as no texture
         } else if (types[i] === 'grass') {
