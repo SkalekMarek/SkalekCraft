@@ -61,40 +61,61 @@ export class Mob {
             });
 
         } else if (type === 'kohoutek') {
-            // Cow-like model (Larger, Dark)
+            // Cow-like model (Larger by ~30%, Dark Brown, patches)
             // Body
-            const bodyGeo = new THREE.BoxGeometry(0.9, 0.9, 1.4); // Larger
-            const darkMat = new THREE.MeshStandardMaterial({ color: 0x3d3d3d }); // Dark Grey
-            this.body = new THREE.Mesh(bodyGeo, darkMat);
-            this.body.position.y = 0.7;
+            const bodyGeo = new THREE.BoxGeometry(1.2, 1.2, 1.8); // +30% size
+            const brownMat = new THREE.MeshStandardMaterial({ color: 0x4B3621 }); // Dark Brown
+            this.body = new THREE.Mesh(bodyGeo, brownMat);
+            this.body.position.y = 0.9;
             this.group.add(this.body);
 
+            // Patches (White)
+            const patchGeo = new THREE.BoxGeometry(0.4, 0.1, 0.4);
+            const patchMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
+
+            const p1 = new THREE.Mesh(patchGeo, patchMat);
+            p1.position.set(0.3, 0.61, 0.2); // Top patch
+            p1.rotation.y = 0.5;
+            this.body.add(p1);
+
+            const p2 = new THREE.Mesh(patchGeo, patchMat); // Side patch
+            p2.scale.set(1, 4, 1);
+            p2.position.set(-0.61, 0, -0.4);
+            this.body.add(p2);
+
+            const p3 = new THREE.Mesh(patchGeo, patchMat); // Back patch
+            p3.scale.set(2, 2, 2);
+            p3.position.set(0, 0.2, 0.91);
+            p3.rotation.x = Math.PI / 2;
+            this.body.add(p3);
+
+
             // Head
-            const headGeo = new THREE.BoxGeometry(0.8, 0.8, 0.8);
+            const headGeo = new THREE.BoxGeometry(1.0, 1.0, 1.0);
             const loader = new THREE.TextureLoader();
             const faceTexture = loader.load('textures/kohoutek.png');
             faceTexture.magFilter = THREE.NearestFilter;
             const faceMat = new THREE.MeshStandardMaterial({ map: faceTexture });
 
             const headMats = [
-                darkMat, darkMat,
-                darkMat, darkMat,
-                faceMat, darkMat
+                brownMat, brownMat,
+                brownMat, brownMat,
+                faceMat, brownMat
             ];
             this.head = new THREE.Mesh(headGeo, headMats);
-            this.head.position.set(0, 1.2, 0.9);
+            this.head.position.set(0, 1.6, 1.2);
             this.group.add(this.head);
 
             // Legs
             this.legs = [];
-            const legGeo = new THREE.BoxGeometry(0.3, 0.7, 0.3);
+            const legGeo = new THREE.BoxGeometry(0.35, 0.9, 0.35);
             const legPos = [
-                { x: -0.3, z: 0.45 }, { x: 0.3, z: 0.45 },
-                { x: -0.3, z: -0.45 }, { x: 0.3, z: -0.45 }
+                { x: -0.4, z: 0.6 }, { x: 0.4, z: 0.6 },
+                { x: -0.4, z: -0.6 }, { x: 0.4, z: -0.6 }
             ];
             legPos.forEach(p => {
-                const leg = new THREE.Mesh(legGeo, darkMat);
-                leg.position.set(p.x, 0.35, p.z);
+                const leg = new THREE.Mesh(legGeo, brownMat);
+                leg.position.set(p.x, 0.45, p.z);
                 this.legs.push(leg);
                 this.group.add(leg);
             });
@@ -170,7 +191,7 @@ export class Mob {
 
         if (attracted) {
             const dist = this.position.distanceTo(playerPos);
-            if (dist < 20 && dist > 2.5) { // Stop 1 block away (approx 1.5 + radius)
+            if (dist < 30 && dist > 2.0) { // Increased range to 30, reduced stop to 2.0
                 moveDir.subVectors(playerPos, this.position).normalize();
             }
         } else {
