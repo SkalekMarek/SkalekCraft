@@ -129,6 +129,35 @@ export class Mob {
                 this.group.add(leg);
             });
 
+        } else if (type === 'ulrich') {
+            // Fish model
+            // Body (Horizontal)
+            const bodyGeo = new THREE.BoxGeometry(0.4, 0.6, 1.0); // Thin, tallish, long
+            const fishMat = new THREE.MeshStandardMaterial({ color: 0x44aaaa }); // Teal/Silver
+            this.body = new THREE.Mesh(bodyGeo, fishMat);
+            this.body.position.y = 0.3;
+            // Rotate body to be horizontal effectively if needed, but Box is already aligned Z
+            // Let's add fins
+
+            // Tail
+            const tailGeo = new THREE.BoxGeometry(0.1, 0.4, 0.4);
+            const tail = new THREE.Mesh(tailGeo, fishMat);
+            tail.position.set(0, 0, -0.6);
+            this.body.add(tail);
+
+            // Face
+            const faceGeo = new THREE.PlaneGeometry(0.35, 0.35);
+            const loader = new THREE.TextureLoader();
+            const faceTexture = loader.load('textures/ulrich.jpeg');
+            // faceTexture.rotation = -Math.PI / 2; // Adjust if needed
+            const faceMat = new THREE.MeshBasicMaterial({ map: faceTexture, side: THREE.DoubleSide });
+            const face = new THREE.Mesh(faceGeo, faceMat);
+            face.position.set(0, 0.1, 0.51); // Front
+            this.body.add(face);
+
+            this.group.add(this.body);
+            this.legs = []; // No legs
+
         } else {
             // Pig-like model (Ceca)
             // Body
@@ -181,10 +210,72 @@ export class Mob {
 
         // Water Physics (Swimming)
         const headBlock = this.world.getBlockType(Math.floor(this.position.x), Math.floor(this.position.y + 0.5), Math.floor(this.position.z));
-        if (headBlock === 'water') {
-            this.velocity.y = 5; // Float up like holding space
-            this.velocity.x *= 0.8; // Water resistance
-            this.velocity.z *= 0.8;
+        const inWater = (headBlock === 'water');
+
+        if (this.type === 'ulrich') {
+            if (inWater) {
+                this.velocity.y *= 0.9; // Drag
+                if (Math.abs(this.velocity.y) < 0.1) this.velocity.y = 0;
+
+                // Keep inside water (swim)
+                // If attempting to move out, block it?
+                // AI will handle steering, but here we just apply generic water drag
+                this.velocity.x *= 0.8;
+                this.velocity.z *= 0.8;
+            } else {
+                // Out of water! Jump/Flop towards water
+                this.velocity.y -= 25 * delta; // Gravity
+                this.velocity.x *= 0.5; // High friction on land
+                this.velocity.z *= 0.5;
+
+                // Scan for water
+                if (this.onGround && Math.random() < 0.1) { // Hop occasionally
+                    const range = 8;
+                    let bestWater = null;
+                    let minDst = 999;
+                    const bx = Math.floor(this.position.x);
+                    const by = Math.floor(this.position.y);
+                    const bz = Math.floor(this.position.z);
+
+                    for (let x = -range; x <= range; x++) {
+                        for (let z = -range; z <= range; z++) {
+                            for (let y = -2; y <= 2; y++) { // Check nearby heights
+                                if (this.world.getBlockType(bx + x, by + y, bz + z) === 'water') {
+                                    const d = x * x + y * y + z * z;
+                                    if (d < minDst) {
+                                        minDst = d;
+                                        bestWater = new THREE.Vector3(bx + x + 0.5, by + y + 0.5, bz + z + 0.5);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if (bestWater) {
+                        // Jump towards water
+                        const dir = new THREE.Vector3().subVectors(bestWater, this.position).normalize();
+                        this.velocity.x = dir.x * 4;
+                        this.velocity.z = dir.z * 4;
+                        this.velocity.y = 5;
+                        this.onGround = false;
+                    } else {
+                        // Panicked flopping
+                        this.velocity.y = 3;
+                        this.velocity.x = (Math.random() - 0.5) * 2;
+                        this.velocity.z = (Math.random() - 0.5) * 2;
+                        this.onGround = false;
+                    }
+                }
+            }
+        } else {
+            // Normal Mob Gravity/Water
+            if (headBlock === 'water') {
+                this.velocity.y = 5; // Float up like holding space
+                this.velocity.x *= 0.8; // Water resistance
+                this.velocity.z *= 0.8;
+            } else {
+                this.velocity.y -= 25 * delta;
+            }
         }
 
         // Physics / Movement Intent
@@ -196,12 +287,13 @@ export class Mob {
             if (this.type === 'ceca' && isHoldingBait === 'cecabait') attracted = true;
             if (this.type === 'bohy' && isHoldingBait === 'bohybait') attracted = true;
             if (this.type === 'kohoutek' && isHoldingBait === 'kohoutekbait') attracted = true;
+            if (this.type === 'ulrich' && isHoldingBait === 'ulrichbait') attracted = true;
         }
 
         if (attracted) {
             const dist = this.position.distanceTo(playerPos);
             let stopDist = 2.5;
-            if (this.type === 'kohoutek') stopDist = 3.5; // Stop further away (larger body + 1 block gap)
+            if (this.type === 'kohoutek') stopDist = 3.5;
 
             if (dist < 30 && dist > stopDist) {
                 moveDir.subVectors(playerPos, this.position).normalize();
@@ -217,6 +309,18 @@ export class Mob {
             if (this.isWandering) {
                 moveDir.x = Math.sin(this.wanderAngle);
                 moveDir.z = Math.cos(this.wanderAngle);
+            }
+        }
+
+        // Special restriction for Ulrich: Stay in water if already in water
+        if (this.type === 'ulrich' && inWater && !attracted) {
+            // If moveDir would take us into non-water, cancel or invert it?
+            // Simple check: Look ahead
+            const nextPos = this.position.clone().add(moveDir.clone().multiplyScalar(0.5));
+            const nextBlock = this.world.getBlockType(Math.floor(nextPos.x), Math.floor(nextPos.y), Math.floor(nextPos.z));
+            if (nextBlock !== 'water') {
+                moveDir.set(0, 0, 0); // Don't swim onto land
+                this.isWandering = false; // Pick new dir later
             }
         }
 
@@ -247,9 +351,14 @@ export class Mob {
             this.legs[1].rotation.x = Math.sin(time * walkSpeed + Math.PI) * 0.5;
             this.legs[2].rotation.x = Math.sin(time * walkSpeed + Math.PI) * 0.5;
             this.legs[3].rotation.x = Math.sin(time * walkSpeed) * 0.5;
+
+            // Ulrich Tail Wag
+            if (this.type === 'ulrich') {
+                this.body.children[0].rotation.y = Math.sin(time * 20) * 0.5; // Tail is 1st child
+            }
         } else {
             // Reset legs
-            this.legs.forEach(l => l.rotation.x = 0);
+            if (this.legs) this.legs.forEach(l => l.rotation.x = 0);
         }
     }
 
