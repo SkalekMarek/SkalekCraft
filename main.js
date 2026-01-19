@@ -1,6 +1,7 @@
 import * as THREE from 'three';
-import { World } from './World.js?v=6';
+import { World } from './World.js?v=8';
 import { Player } from './Player.js';
+import { Mob } from './Mob.js';
 
 
 // --- INIT ---
@@ -28,7 +29,21 @@ scene.add(dirLight);
 const world = new World(scene);
 world.generateSimple(100); // Increased Size 200x200
 
+
 const player = new Player(camera, document.body, world);
+
+// --- MOBS ---
+const mobs = [];
+function spawnMob(type, x, y, z) {
+    const m = new Mob(scene, world, new THREE.Vector3(x, y, z), type);
+    mobs.push(m);
+}
+
+// Initial Spawn (Randomly around center)
+for (let i = 0; i < 5; i++) {
+    spawnMob('ceca', (Math.random() - 0.5) * 20, 20, (Math.random() - 0.5) * 20);
+}
+
 
 // --- INTERACTION & UI ---
 const raycaster = new THREE.Raycaster();
@@ -57,7 +72,7 @@ function updateHotbar() {
     });
 }
 // Init icons
-const types = ['grass', 'stone', 'dirt', 'wood', 'water', null, null, null, null];
+const types = ['grass', 'stone', 'dirt', 'wood', 'water', 'cecabait', null, null, null];
 slots.forEach((s, i) => {
     if (types[i]) {
         // Simple color approximation for icon
@@ -70,7 +85,14 @@ slots.forEach((s, i) => {
         if (types[i] === 'sand') color = '#F4A460';
         if (types[i] === 'bedrock') color = '#1a1a1a';
         if (types[i] === 'water') color = '#244F99';
-        s.style.backgroundColor = color;
+        if (types[i] === 'cecabait') {
+            s.style.backgroundImage = `url('cecabait.jpg')`;
+            s.style.backgroundSize = 'cover';
+            s.style.backgroundColor = 'transparent';
+        } else {
+            s.style.backgroundColor = color;
+            s.style.backgroundImage = 'none';
+        }
     } else {
         s.style.backgroundColor = 'transparent';
     }
@@ -125,6 +147,11 @@ window.addEventListener('mousedown', (e) => {
             const dy = Math.abs(pos.y - pPos.y);
             const dz = Math.abs(pos.z - pPos.z);
             if (dx < 0.8 && dy < 1.8 && dz < 0.8) return;
+
+            if (types[selectedSlot] === 'cecabait') {
+                spawnMob('ceca', pos.x, pos.y + 1, pos.z);
+                return;
+            }
 
             const type = types[selectedSlot];
             if (!type) return;
@@ -255,6 +282,11 @@ function animate() {
     prevTime = time;
 
     player.update(delta);
+
+    // Mob Updates
+    const currentItem = types[selectedSlot];
+    const isHoldingBait = (currentItem === 'cecabait');
+    mobs.forEach(m => m.update(delta, player.camera.position, isHoldingBait));
 
     // Broadcast Position
     if (time - lastBroadcast > broadcastRate) {
