@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 export class Mob {
-    constructor(scene, world, position, type = 'ceca') {
+    constructor(scene, world, position, type = 'ceca', id = null, isRemote = false) {
         this.scene = scene;
         this.world = world;
         this.type = type;
@@ -10,6 +10,12 @@ export class Mob {
         this.onGround = false;
         this.isDead = false;
         this.health = 3; // 3 Hits
+
+        // Multiplayer
+        this.id = id || crypto.randomUUID(); // Unique ID for sync
+        this.isRemote = isRemote;
+        this.targetPos = this.position.clone(); // For interpolation
+        this.targetRot = 0;
 
         // Visuals
         this.group = new THREE.Group();
@@ -23,309 +29,73 @@ export class Mob {
 
     takeDamage(amount, attackerPos) {
         if (this.isDead) return;
+        // In multiplayer, only the owner (or everyone?) processes damage?
+        // Ideally, the attacker sends a 'hit' event.
+        // For simplicity: Attacker simulates hit locally -> sends 'mobDeath' if health <= 0.
+        // Or: Attacker sends 'mobHit' to owner? 
+        // Current Plan: P2P trust. Attacker calculates damage locally.
+        // If this is a remote mob, we shouldn't really calculate physics recoil here unless we sync it.
+        // BUT for a simple game: Allow local feedback, then sync position updates from owner.
+        // Actually, if isRemote, we probably shouldn't "own" the health logic, but we want visual feedback.
 
         this.health -= amount;
 
-        // Knockback
-        const recoil = this.position.clone().sub(attackerPos).normalize();
-        recoil.y = 0.5; // Slight pop up
-        this.velocity.add(recoil.multiplyScalar(15)); // Knockback force
-        this.onGround = false;
-
-        // Red Flash
+        // Visual Feedback (Red Flash) - Show this on all clients
         this.flashRed();
 
-        // Death
+        // Physics Recoil - Only if we own it? 
+        // If we knock back a remote mob, it will snap back when owner sends update. 
+        // For now, let's allow local knockback for "Juice", but it might glitch back.
+        if (!this.isRemote) {
+            const recoil = this.position.clone().sub(attackerPos).normalize();
+            recoil.y = 0.5;
+            this.velocity.add(recoil.multiplyScalar(15));
+            this.onGround = false;
+        }
+
+        // Death - Handled by caller broadcasting 'mobDeath'
         if (this.health <= 0) {
             this.die();
         }
     }
 
-    flashRed() {
-        const originalMats = [];
-        const redMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-
-        this.group.traverse((child) => {
-            if (child.isMesh) {
-                originalMats.push({ mesh: child, mat: child.material });
-                child.material = redMat;
-            }
-        });
-
-        setTimeout(() => {
-            if (this.isDead) return; // Don't bother if dead (removed)
-            originalMats.forEach(({ mesh, mat }) => {
-                mesh.material = mat;
-            });
-        }, 100);
-    }
-
-    die() {
-        this.isDead = true;
-        this.scene.remove(this.group);
-        const audio = new Audio('died.mp3');
-        audio.play().catch(e => console.error("Audio error:", e));
-    }
-
-    createCowTexture() {
-        const canvas = document.createElement('canvas');
-        canvas.width = 128;
-        canvas.height = 128;
-        const ctx = canvas.getContext('2d');
-
-        // Base Brown
-        ctx.fillStyle = '#4B3621';
-        ctx.fillRect(0, 0, 128, 128);
-
-        // White Patches
-        ctx.fillStyle = '#FFFFFF';
-        for (let i = 0; i < 8; i++) {
-            const x = Math.random() * 128;
-            const y = Math.random() * 128;
-            const w = 20 + Math.random() * 40;
-            const h = 20 + Math.random() * 40;
-            ctx.fillRect(x, y, w, h);
-        }
-
-        const tex = new THREE.CanvasTexture(canvas);
-        tex.magFilter = THREE.NearestFilter;
-        return tex;
-    }
-
-    createModel(type) {
-        if (type === 'bohy') {
-            // Chicken-like model
-            // Body (White)
-            const bodyGeo = new THREE.BoxGeometry(0.6, 0.6, 0.8);
-            const whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
-            this.body = new THREE.Mesh(bodyGeo, whiteMat);
-            this.body.position.y = 0.5;
-            this.group.add(this.body);
-
-            // Head
-            const headGeo = new THREE.BoxGeometry(0.5, 0.5, 0.5);
-            const loader = new THREE.TextureLoader();
-            const faceTexture = loader.load('textures/bohy.png');
-            faceTexture.magFilter = THREE.NearestFilter;
-            const faceMat = new THREE.MeshStandardMaterial({ map: faceTexture });
-
-            const headMats = [
-                whiteMat, whiteMat,
-                whiteMat, whiteMat,
-                faceMat, whiteMat
-            ];
-            this.head = new THREE.Mesh(headGeo, headMats);
-            this.head.position.set(0, 0.9, 0.5);
-            this.group.add(this.head);
-
-            // Legs (Yellow)
-            this.legs = [];
-            const legGeo = new THREE.BoxGeometry(0.15, 0.5, 0.15);
-            const yellowMat = new THREE.MeshStandardMaterial({ color: 0xFFFF00 });
-            const legPos = [
-                { x: -0.2, z: 0.1 }, { x: 0.2, z: 0.1 },
-                { x: -0.2, z: -0.1 }, { x: 0.2, z: -0.1 }
-            ];
-            legPos.forEach(p => {
-                const leg = new THREE.Mesh(legGeo, yellowMat);
-                leg.position.set(p.x, 0.25, p.z);
-                this.legs.push(leg);
-                this.group.add(leg);
-            });
-
-        } else if (type === 'kohoutek') {
-            // Cow-like model (Larger by ~30%, Dark Brown, patches)
-            // Body with Procedural Texture
-            const bodyGeo = new THREE.BoxGeometry(1.2, 1.2, 1.8); // +30% size
-
-            // Create unique texture for each cow so patterns look different
-            const cowTexture = this.createCowTexture();
-            const brownMat = new THREE.MeshStandardMaterial({ map: cowTexture });
-
-            this.body = new THREE.Mesh(bodyGeo, brownMat);
-            this.body.position.y = 0.9;
-            this.group.add(this.body);
-
-            // Head
-            const headGeo = new THREE.BoxGeometry(1.0, 1.0, 1.0);
-            const loader = new THREE.TextureLoader();
-            const faceTexture = loader.load('textures/kohoutek.png');
-            faceTexture.magFilter = THREE.NearestFilter;
-            const faceMat = new THREE.MeshStandardMaterial({ map: faceTexture });
-
-            // Reuse brown mat for head sides so it matches body
-            const headMats = [
-                brownMat, brownMat,
-                brownMat, brownMat,
-                faceMat, brownMat
-            ];
-            this.head = new THREE.Mesh(headGeo, headMats);
-            this.head.position.set(0, 1.6, 1.2);
-            this.group.add(this.head);
-
-            // Legs
-            this.legs = [];
-            const legGeo = new THREE.BoxGeometry(0.35, 0.9, 0.35);
-            const legPos = [
-                { x: -0.4, z: 0.6 }, { x: 0.4, z: 0.6 },
-                { x: -0.4, z: -0.6 }, { x: 0.4, z: -0.6 }
-            ];
-            legPos.forEach(p => {
-                const leg = new THREE.Mesh(legGeo, brownMat);
-                leg.position.set(p.x, 0.45, p.z);
-                this.legs.push(leg);
-                this.group.add(leg);
-            });
-
-        } else if (type === 'ulrich') {
-            // Wolf Model (Smaller, No Snout, Ears)
-            // Body (Grey/Silver)
-            // Reduced size: 0.8 -> 0.5, 1.3 -> 0.9
-            const bodyGeo = new THREE.BoxGeometry(0.5, 0.5, 0.9);
-            const furMat = new THREE.MeshStandardMaterial({ color: 0x999999 }); // Grey
-            this.body = new THREE.Mesh(bodyGeo, furMat);
-            this.body.position.y = 0.4; // Lower due to size
-            this.group.add(this.body);
-
-            // Head
-            // Reduced size: 0.7 -> 0.45
-            const headGeo = new THREE.BoxGeometry(0.45, 0.45, 0.45);
-            const loader = new THREE.TextureLoader();
-            const faceTexture = loader.load('textures/ulrich.jpeg');
-            faceTexture.magFilter = THREE.NearestFilter;
-            const faceMat = new THREE.MeshStandardMaterial({ map: faceTexture });
-
-            // Apply face to front, fur to others
-            const headMats = [
-                furMat, furMat, // x
-                furMat, furMat, // y
-                faceMat, furMat // z
-            ];
-
-            this.head = new THREE.Mesh(headGeo, headMats);
-            this.head.position.set(0, 0.5, 0.7); // Adjusted pos relative to body
-            this.body.add(this.head); // Attach to body so it moves with it? logic below adds to group logic usually.
-            // Wait, previous code added head to group. Let's keep consistency.
-            // Previous: head.position.set(0, 1.2, 0.9); group.add(head);
-            // Let's attach head to body for better animation potential later? 
-            // The existing code for other mobs adds head to group. I will stick to group for safety unless I want to change animation logic.
-            // Actually, attaching to body makes "body rotation" rotate head too.
-            // But let's stick to the pattern: group.add(head).
-            // New pos needs to match scaled body. Body center is y=0.4. Height=0.5. Top=0.65.
-            // Head center y should be around 0.8.
-
-            // Re-evaluating attachment:
-            // logic in update() doesn't rotate body x/z, so group structure is fine.
-            // Let's use group.add(head)
-
-            // Resetting head parentage to group to match others.
-        } else if (type === 'ulrich') {
-            // Wolf Model (Refined: Smaller, Ears, No Snout)
-
-            // Body 
-            const bodyGeo = new THREE.BoxGeometry(0.5, 0.5, 0.9);
-            const furMat = new THREE.MeshStandardMaterial({ color: 0x999999 });
-            this.body = new THREE.Mesh(bodyGeo, furMat);
-            this.body.position.y = 0.5;
-            this.group.add(this.body);
-
-            // Head (Smaller)
-            const headGeo = new THREE.BoxGeometry(0.4, 0.4, 0.4);
-            const loader = new THREE.TextureLoader();
-            const faceTexture = loader.load('textures/ulrich.jpeg');
-            faceTexture.magFilter = THREE.NearestFilter;
-            const faceMat = new THREE.MeshStandardMaterial({ map: faceTexture });
-
-            const headMats = [
-                furMat, furMat,
-                furMat, furMat,
-                faceMat, furMat
-            ];
-
-            this.head = new THREE.Mesh(headGeo, headMats);
-            this.head.position.set(0, 0.95, 0.65); // Just above body front
-            this.group.add(this.head);
-
-            // Ears (New!)
-            const earGeo = new THREE.BoxGeometry(0.1, 0.15, 0.1);
-            // Left Ear
-            const earL = new THREE.Mesh(earGeo, furMat);
-            earL.position.set(-0.12, 0.25, -0.05); // Top of head
-            this.head.add(earL);
-            // Right Ear
-            const earR = new THREE.Mesh(earGeo, furMat);
-            earR.position.set(0.12, 0.25, -0.05);
-            this.head.add(earR);
-
-            // NO SNOUT explicitly
-
-            // Tail (Smaller)
-            const tailGeo = new THREE.BoxGeometry(0.12, 0.12, 0.5);
-            const tail = new THREE.Mesh(tailGeo, furMat);
-            tail.position.set(0, 0.1, -0.5);
-            tail.rotation.x = -0.5;
-            this.body.add(tail);
-
-            // Legs (Smaller Cubes)
-            this.legs = [];
-            const legGeo = new THREE.BoxGeometry(0.15, 0.15, 0.15); // Cubic
-            const legPos = [
-                { x: -0.15, z: 0.25 }, { x: 0.15, z: 0.25 },
-                { x: -0.15, z: -0.25 }, { x: 0.15, z: -0.25 }
-            ];
-            legPos.forEach(p => {
-                const leg = new THREE.Mesh(legGeo, furMat);
-                leg.position.set(p.x, 0.075, p.z); // Adjust y pos for smaller height
-                this.legs.push(leg);
-                this.group.add(leg);
-            });
-
-        } else {
-            // Pig-like model (Ceca)
-            // Body
-            const bodyGeo = new THREE.BoxGeometry(0.8, 0.8, 1.2);
-            const pinkMat = new THREE.MeshStandardMaterial({ color: 0xFFC0CB }); // Pink
-            this.body = new THREE.Mesh(bodyGeo, pinkMat);
-            this.body.position.y = 0.6;
-            this.group.add(this.body);
-
-            // Head
-            const headGeo = new THREE.BoxGeometry(0.7, 0.7, 0.7);
-            // Face Texture
-            const loader = new THREE.TextureLoader();
-            const faceTexture = loader.load('textures/' + type + '.png'); // ceca.png -> textures/ceca.png
-            faceTexture.magFilter = THREE.NearestFilter;
-
-            const faceMat = new THREE.MeshStandardMaterial({ map: faceTexture });
-            const headMats = [
-                pinkMat, pinkMat, // x
-                pinkMat, pinkMat, // y
-                faceMat, pinkMat  // z (face is usually +z or -z depending on orientation)
-            ];
-
-            this.head = new THREE.Mesh(headGeo, headMats);
-            this.head.position.set(0, 1.1, 0.8); // Slightly forward and up
-            this.group.add(this.head);
-
-            // Legs
-            this.legs = [];
-            const legGeo = new THREE.BoxGeometry(0.25, 0.6, 0.25);
-            const legPos = [
-                { x: -0.25, z: 0.4 }, { x: 0.25, z: 0.4 },
-                { x: -0.25, z: -0.4 }, { x: 0.25, z: -0.4 }
-            ];
-
-            legPos.forEach(p => {
-                const leg = new THREE.Mesh(legGeo, pinkMat);
-                leg.position.set(p.x, 0.3, p.z);
-                this.legs.push(leg);
-                this.group.add(leg);
-            });
-        }
+    // Called by network when owner says this mob moved
+    updateRemote(x, y, z, ry) {
+        this.targetPos.set(x, y, z);
+        this.targetRot = ry;
     }
 
     update(delta, playerPos, isHoldingBait) {
         if (this.isDead) return;
+
+        if (this.isRemote) {
+            // INTERPOLATION for remote mobs
+            this.position.lerp(this.targetPos, 10 * delta); // Smooth move
+            this.group.position.copy(this.position);
+
+            // Smooth Rotation (shortest path)
+            // Simple lerp for rotation y
+            // To do it properly with wrapping would be ideal, but simple lerp:
+            this.group.rotation.y += (this.targetRot - this.group.rotation.y) * 10 * delta;
+
+            // Animation (Walk if moving)
+            const dist = this.position.distanceTo(this.targetPos);
+            if (dist > 0.1 || Math.abs(this.group.rotation.y - this.targetRot) > 0.1) {
+                const time = performance.now() / 1000;
+                const walkSpeed = 10;
+                if (this.legs && this.legs.length >= 4) {
+                    this.legs[0].rotation.x = Math.sin(time * walkSpeed) * 0.5;
+                    this.legs[1].rotation.x = Math.sin(time * walkSpeed + Math.PI) * 0.5;
+                    this.legs[2].rotation.x = Math.sin(time * walkSpeed + Math.PI) * 0.5;
+                    this.legs[3].rotation.x = Math.sin(time * walkSpeed) * 0.5;
+                }
+            } else {
+                if (this.legs) this.legs.forEach(l => l.rotation.x = 0);
+            }
+            return; // Skip physics/AI for remote mobs
+        }
+
+        // --- LOCAL LOGIC BELOW (Gravity, AI, Physics) ---
 
         // Gravity
         this.velocity.y -= 25 * delta;

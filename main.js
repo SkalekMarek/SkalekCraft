@@ -34,9 +34,24 @@ const player = new Player(camera, document.body, world);
 
 // --- MOBS ---
 const mobs = [];
-function spawnMob(type, x, y, z) {
-    const m = new Mob(scene, world, new THREE.Vector3(x, y, z), type);
+function spawnMob(type, x, y, z, id = null, isRemote = false) {
+    // Generate ID if not provided (Local spawn)
+    const mobId = id || crypto.randomUUID();
+
+    // Create Mob
+    const m = new Mob(scene, world, new THREE.Vector3(x, y, z), type, mobId, isRemote);
     mobs.push(m);
+
+    // If local, broadcast spawn
+    if (!isRemote) {
+        sendMobSpawn({
+            type: type,
+            x: x,
+            y: y,
+            z: z,
+            id: mobId
+        });
+    }
 }
 
 // Initial Spawn (Randomly around center)
@@ -137,6 +152,13 @@ window.addEventListener('mousedown', (e) => {
 
                 if (targetObj && targetObj.userData.mob) {
                     targetObj.userData.mob.takeDamage(1, player.position);
+
+                    // Broadcast death if it happened (Mob.js handles health check, but we need to know)
+                    // Better: Mob.js can expose isDead status or we check here
+                    if (targetObj.userData.mob.health <= 0) {
+                        // Send death event
+                        sendMobDeath({ id: targetObj.userData.mob.id });
+                    }
                     return; // Hit mob, don't break block
                 }
             }
@@ -235,6 +257,9 @@ const room = joinRoom(roomConfig, 'main-lobby');
 // Actions
 const [sendMove, getMove] = room.makeAction('move');
 const [sendBlock, getBlock] = room.makeAction('block');
+const [sendMobSpawn, getMobSpawn] = room.makeAction('mobSpawn');
+const [sendMobMove, getMobMove] = room.makeAction('mobMove');
+const [sendMobDeath, getMobDeath] = room.makeAction('mobDeath');
 
 const remotePlayers = {};
 
@@ -253,6 +278,19 @@ room.onPeerJoin(peerId => {
         // Send my current position to the new peer immediately so they see me
         const p = player.camera.position;
         sendMove({ x: p.x, y: p.y, z: p.z, ry: player.camera.rotation.y }, peerId);
+
+        // Sync my existing mobs to the new peer
+        mobs.forEach(m => {
+            if (!m.isRemote && !m.isDead) {
+                sendMobSpawn({
+                    type: m.type,
+                    x: m.position.x,
+                    y: m.position.y,
+                    z: m.position.z,
+                    id: m.id
+                }, peerId);
+            }
+        });
     }, 500);
 
 });
@@ -281,6 +319,27 @@ getBlock((data, peerId) => {
         world.placeBlock(data.x, data.y, data.z, data.type);
     } else if (data.action === 'remove') {
         world.removeBlockAt(data.x, data.y, data.z);
+    }
+});
+
+// 4. Mob Updates
+getMobSpawn((data, peerId) => {
+    // Check if mob already exists (deduplication)
+    if (mobs.find(m => m.id === data.id)) return;
+    spawnMob(data.type, data.x, data.y, data.z, data.id, true);
+});
+
+getMobMove((data, peerId) => {
+    const m = mobs.find(m => m.id === data.id);
+    if (m && m.isRemote) {
+        m.updateRemote(data.x, data.y, data.z, data.ry);
+    }
+});
+
+getMobDeath((data, peerId) => {
+    const m = mobs.find(m => m.id === data.id);
+    if (m) {
+        m.die(); // Visual death
     }
 });
 
@@ -338,6 +397,20 @@ function animate() {
         const p = player.camera.position;
         // Optimization: Check distance moved before sending could save bandwidth
         sendMove({ x: p.x, y: p.y, z: p.z, ry: player.camera.rotation.y });
+
+        // Broadcast Local Mob Moves
+        mobs.forEach(m => {
+            if (!m.isRemote && !m.isDead) { // Only send my mobs
+                sendMobMove({
+                    id: m.id,
+                    x: m.position.x,
+                    y: m.position.y,
+                    z: m.position.z,
+                    ry: m.group.rotation.y
+                });
+            }
+        });
+
         lastBroadcast = time;
     }
 
