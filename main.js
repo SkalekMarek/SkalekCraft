@@ -55,16 +55,8 @@ function spawnMob(type, x, y, z, id = null, isRemote = false) {
 }
 
 // Initial Spawn (Randomly around center)
-// Initial Spawn (Randomly around center)
-for (let i = 0; i < 6; i++) {
-    const r = Math.random();
-    let type = 'ceca';
-    if (r < 0.33) type = 'bohy';
-    else if (r < 0.66) type = 'kohoutek';
-    else type = 'ulrich';
+// Initial Spawn logic moved after network initialization to avoid ReferenceError
 
-    spawnMob(type, (Math.random() - 0.5) * 20, 20, (Math.random() - 0.5) * 20);
-}
 
 
 // --- INTERACTION & UI ---
@@ -260,6 +252,17 @@ const [sendBlock, getBlock] = room.makeAction('block');
 const [sendMobSpawn, getMobSpawn] = room.makeAction('mobSpawn');
 const [sendMobMove, getMobMove] = room.makeAction('mobMove');
 const [sendMobDeath, getMobDeath] = room.makeAction('mobDeath');
+
+// --- INITIAL SPAWN (Must be after network actions) ---
+for (let i = 0; i < 6; i++) {
+    const r = Math.random();
+    let type = 'ceca';
+    if (r < 0.33) type = 'bohy';
+    else if (r < 0.66) type = 'kohoutek';
+    else type = 'ulrich';
+
+    spawnMob(type, (Math.random() - 0.5) * 20, 20, (Math.random() - 0.5) * 20);
+}
 
 const remotePlayers = {};
 
