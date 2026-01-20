@@ -34,23 +34,39 @@ const player = new Player(camera, document.body, world);
 
 // --- MOBS ---
 const mobs = [];
+// --- UTILS ---
+function generateUUID() {
+    // Simple UUID v4 replacement if crypto is missing
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+        return crypto.randomUUID();
+    }
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+        var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
+}
+
 function spawnMob(type, x, y, z, id = null, isRemote = false) {
-    // Generate ID if not provided (Local spawn)
-    const mobId = id || crypto.randomUUID();
+    try {
+        // Generate ID if not provided (Local spawn)
+        const mobId = id || generateUUID();
 
-    // Create Mob
-    const m = new Mob(scene, world, new THREE.Vector3(x, y, z), type, mobId, isRemote);
-    mobs.push(m);
+        // Create Mob
+        const m = new Mob(scene, world, new THREE.Vector3(x, y, z), type, mobId, isRemote);
+        mobs.push(m);
 
-    // If local, broadcast spawn
-    if (!isRemote) {
-        sendMobSpawn({
-            type: type,
-            x: x,
-            y: y,
-            z: z,
-            id: mobId
-        });
+        // If local, broadcast spawn
+        if (!isRemote) {
+            sendMobSpawn({
+                type: type,
+                x: x,
+                y: y,
+                z: z,
+                id: mobId
+            });
+        }
+    } catch (e) {
+        console.error("Error spawning mob:", e);
     }
 }
 
@@ -254,14 +270,20 @@ const [sendMobMove, getMobMove] = room.makeAction('mobMove');
 const [sendMobDeath, getMobDeath] = room.makeAction('mobDeath');
 
 // --- INITIAL SPAWN (Must be after network actions) ---
-for (let i = 0; i < 6; i++) {
-    const r = Math.random();
-    let type = 'ceca';
-    if (r < 0.33) type = 'bohy';
-    else if (r < 0.66) type = 'kohoutek';
-    else type = 'ulrich';
+// --- INITIAL SPAWN (Must be after network actions) ---
+try {
+    for (let i = 0; i < 6; i++) {
+        const r = Math.random();
+        let type = 'ceca';
+        if (r < 0.33) type = 'bohy';
+        else if (r < 0.66) type = 'kohoutek';
+        else type = 'ulrich';
 
-    spawnMob(type, (Math.random() - 0.5) * 20, 20, (Math.random() - 0.5) * 20);
+        // Safe spawn
+        spawnMob(type, (Math.random() - 0.5) * 20, 20, (Math.random() - 0.5) * 20);
+    }
+} catch (err) {
+    console.error("Initial mob spawn failed:", err);
 }
 
 const remotePlayers = {};
