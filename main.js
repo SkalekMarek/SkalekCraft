@@ -478,6 +478,13 @@ function animate() {
     renderer.render(scene, camera);
 }
 
+// Lock pointer on click if game is running
+document.addEventListener('click', () => {
+    if (typeof gameStarted !== 'undefined' && gameStarted && typeof player !== 'undefined' && !player.isMobile && player.controls && !player.controls.isLocked) {
+        player.controls.lock();
+    }
+});
+
 function startGame() {
     gameStarted = true;
     prevTime = performance.now();

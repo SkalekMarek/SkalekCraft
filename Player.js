@@ -66,9 +66,7 @@ export class Player {
         };
         document.addEventListener('keydown', onKeyDown);
         document.addEventListener('keyup', onKeyUp);
-        document.addEventListener('click', () => {
-            if (!this.controls.isLocked) this.controls.lock();
-        });
+        // Removed auto-lock on click, handled in main.js
     }
 
     update(delta) {
