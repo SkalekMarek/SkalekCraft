@@ -25,6 +25,8 @@ export class Player {
     }
 
     setupInputs() {
+        this.isMobile = false; // Flag for mobile mode
+
         // ... (Keep existing input setup but improve key handling if needed, existing looked okay-ish, but let's be robust)
         const onKeyDown = (event) => {
             switch (event.code) {
@@ -69,7 +71,7 @@ export class Player {
     }
 
     update(delta) {
-        if (!this.controls.isLocked) return;
+        if (!this.controls.isLocked && !this.isMobile) return;
 
         // Handle Un-Crouch
         if (this.input.crouch !== this.wasCrouching) {
@@ -204,6 +206,14 @@ export class Player {
                 }
             }
         }
-        return false;
+    }
+
+    rotateCamera(movementX, movementY) {
+        const sensitivity = 0.002;
+        this.camera.rotation.y -= movementX * sensitivity;
+        this.camera.rotation.x -= movementY * sensitivity;
+
+        // Clamp pitch
+        this.camera.rotation.x = Math.max(- Math.PI / 2, Math.min(Math.PI / 2, this.camera.rotation.x));
     }
 }

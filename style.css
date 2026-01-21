@@ -106,3 +106,92 @@ canvas {
     background: rgba(0, 0, 0, 0.5);
     padding: 5px;
 }
+
+/* --- MOBILE CONTROLS --- */
+#mobile-controls {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    /* Let clicks pass through, but children will re-enable */
+    z-index: 100;
+}
+
+#joystick-zone {
+    position: absolute;
+    bottom: 50px;
+    left: 50px;
+    width: 150px;
+    height: 150px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    pointer-events: auto;
+    touch-action: none;
+}
+
+#joystick-knob {
+    position: absolute;
+    top: 50px;
+    /* Center (150/2 - 50/2) */
+    left: 50px;
+    width: 50px;
+    height: 50px;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 50%;
+    transform: translate(0, 0);
+    pointer-events: none;
+    /* Touches handled by zone */
+}
+
+#look-zone {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 50%;
+    /* Right half of screen */
+    height: 100%;
+    pointer-events: auto;
+    touch-action: none;
+    /* invisible */
+}
+
+#action-buttons {
+    position: absolute;
+    bottom: 80px;
+    right: 50px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    pointer-events: none;
+}
+
+.mobile-btn {
+    width: 60px;
+    height: 60px;
+    background: rgba(255, 255, 255, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-weight: bold;
+    font-size: 24px;
+    pointer-events: auto;
+    touch-action: none;
+    user-select: none;
+}
+
+.active-btn {
+    background: rgba(255, 255, 255, 0.6);
+    transform: scale(0.95);
+}
+
+/* Hide on Desktop default (though JS only creates if mobile) */
+@media (min-width: 1025px) and (hover: hover) {
+    #mobile-controls {
+        display: none;
+    }
+}

@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { World } from './World.js?v=16';
 import { Player } from './Player.js';
 import { Mob } from './Mob.js?v=11';
+import { MobileControls } from './MobileControls.js';
 
 
 // --- INIT ---
@@ -30,7 +31,10 @@ const world = new World(scene);
 world.generateSimple(100); // Increased Size 200x200
 
 
+
 const player = new Player(camera, document.body, world);
+const mobileControls = new MobileControls(player, world);
+
 
 // --- MOBS ---
 const mobs = [];
@@ -137,7 +141,7 @@ slots.forEach((s, i) => {
 
 // Breaking/Placing
 window.addEventListener('mousedown', (e) => {
-    if (!player.controls.isLocked) return;
+    if (!player.controls.isLocked && !player.isMobile) return;
 
     raycaster.setFromCamera(mouse, camera);
     const intersects = raycaster.intersectObjects(world.objects);
