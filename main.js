@@ -158,7 +158,8 @@ slots.forEach((s, i) => {
 window.addEventListener('mousedown', (e) => {
     if (!player.controls.isLocked && !player.isMobile) return;
 
-    raycaster.setFromCamera(mouse, camera);
+    // Use center of screen for raycasting (locked pointer)
+    raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
 
     if (e.button === 0) { // Left Click - Attack / Break
         // 1. Raycast Mobs
@@ -167,7 +168,6 @@ window.addEventListener('mousedown', (e) => {
         let hitMob = null;
 
         if (mobIntersects.length > 0 && mobIntersects[0].distance < 4) {
-            // Find root mob object
             let targetObj = mobIntersects[0].object;
             while (targetObj && !targetObj.userData.mob) {
                 targetObj = targetObj.parent;
@@ -184,147 +184,94 @@ window.addEventListener('mousedown', (e) => {
             hitBlock = blockIntersects[0];
         }
 
-        // 3. Decide what to hit (Closest wins)
+        // 3. Decide priority (Closest wins, with preference to Mobs if very close)
         if (hitMob && (!hitBlock || hitMob.distance < hitBlock.distance)) {
             // ATTACK MOB
             hitMob.mob.takeDamage(1, player.position);
 
-            // Broadcast death check
             if (hitMob.mob.health <= 0) {
-                sendMobDeath({ id: hitMob.mob.id });
+                if (typeof sendMobDeath === 'function') sendMobDeath({ id: hitMob.mob.id });
             }
-            return; // Don't break block if we hit mob
         } else if (hitBlock) {
             // BREAK BLOCK
             if (hitBlock.object.isInstancedMesh) {
                 world.removeBlock(hitBlock.object, hitBlock.instanceId);
 
-                // Recover coords from matrix for network
+                // Recover coords for network
                 const matrix = new THREE.Matrix4();
                 hitBlock.object.getMatrixAt(hitBlock.instanceId, matrix);
                 const pos = new THREE.Vector3().setFromMatrixPosition(matrix);
 
-                // Broadcast
-                sendBlockUpdate({
-                    x: Math.round(pos.x),
-                    y: Math.round(pos.y),
-                    z: Math.round(pos.z),
-                    type: null // null = air/remove
-                });
+                if (typeof sendBlock === 'function') {
+                    sendBlockUpdate({
+                        x: Math.round(pos.x),
+                        y: Math.round(pos.y),
+                        z: Math.round(pos.z),
+                        type: null
+                    });
+                }
+            } else if (hitBlock.object.userData && hitBlock.object.userData.type) {
+                // Fallback for non-instanced objects
+                const { x, y, z } = hitBlock.object.userData;
+                world.removeBlock(hitBlock.object);
+                if (typeof sendBlockUpdate === 'function') {
+                    sendBlockUpdate({ x, y, z, type: null });
+                }
             }
         }
-    } else if (e.button === 2) { // Right Click - Place
-        // Only checking blocks for placement (unless we want to feed mobs later)
+
+    } else if (e.button === 2) { // Right Click - Place / Interact
+        // For placement, we only care about blocks
         const intersects = raycaster.intersectObjects(world.objects);
         if (intersects.length > 0 && intersects[0].distance < 6) {
             const hit = intersects[0];
-            // ... existing placement logic ...
-            // We need to preserve the rest of the function or re-include it.
-            // Since I'm replacing a chunk, I must handle the Right Click flow here too or end the replacement early.
-            // The original code handled e.button checks inside.
-            // Let's just return to the block logic for right click.
 
-            // Just continue to existing placement logic? No, this tool replaces lines.
-            // I need to include the Place Block logic or structure it so it falls through.
-
-            // Let's rewrite the block placement part in the ReplacementContent to be safe.
-
-            const matrix = new THREE.Matrix4();
-            hit.object.getMatrixAt(hit.instanceId, matrix);
-            const pos = new THREE.Vector3().setFromMatrixPosition(matrix);
-            const p = pos.add(hit.face.normal);
-
-            // Check Mob collision at placement
-            const mobBox = new THREE.Box3();
-            let obstructed = false;
-            mobs.forEach(m => {
-                mobBox.setFromObject(m.group);
-                // Expand mob box slightly
-                if (mobBox.containsPoint(p)) obstructed = true;
-            });
-            // Also check player
-            const playerPos = player.position.clone();
-            if (Math.abs(playerPos.x - p.x) < 0.8 && Math.abs(playerPos.z - p.z) < 0.8 && (p.y >= playerPos.y && p.y < playerPos.y + 1.8)) {
-                obstructed = true;
+            // Calculate place position
+            let pos;
+            if (hit.object.isInstancedMesh) {
+                const matrix = new THREE.Matrix4();
+                hit.object.getMatrixAt(hit.instanceId, matrix);
+                pos = new THREE.Vector3().setFromMatrixPosition(matrix).add(hit.face.normal);
+            } else {
+                pos = hit.object.position.clone().add(hit.face.normal);
             }
 
-            if (!obstructed) {
-                const type = types[selectedSlot];
-                if (type && !type.includes('bait')) { // Don't place baits as blocks
-                    world.addBlock(p.x, p.y, p.z, type);
-                    sendBlockUpdate({ x: p.x, y: p.y, z: p.z, type: type });
-                } else if (type && type.includes('bait')) {
-                    // Spawn Mob from Bait
-                    let mobType = type.replace('bait', '');
-                    spawnMob(p.x, p.y + 1, p.z, mobType);
+            // Don't place inside player
+            const pPos = camera.position;
+            // Better: use player.position (feet) and check bounds
+            // Simple distance check from camera (head)
+            if (pos.distanceTo(camera.position) < 1.0) return;
+
+            // Check Mob Obstruction
+            let bad = false;
+            const placeBox = new THREE.Box3().setFromCenterAndSize(pos, new THREE.Vector3(0.9, 0.9, 0.9));
+            for (let m of mobs) {
+                const mobBox = new THREE.Box3().setFromObject(m.group);
+                if (placeBox.intersectsBox(mobBox)) {
+                    bad = true;
+                    break;
+                }
+            }
+            if (bad) return;
+
+            // Determine Item
+            const type = types[selectedSlot];
+            if (!type) return;
+
+            if (type.includes('bait')) {
+                // Spawn Mob
+                const mobType = type.replace('bait', '');
+                spawnMob(pos.x, pos.y, pos.z, mobType); // Spawn ON the block, so y is correct (pos is adjacent air block)
+                // Actually spawnMob sets it at x,y,z. If pos is the air block above ground, that's perfect.
+            } else {
+                // Place Block
+                world.addBlock(pos.x, pos.y, pos.z, type);
+                if (typeof sendBlockUpdate === 'function') {
+                    sendBlockUpdate({ x: pos.x, y: pos.y, z: pos.z, type: type });
                 }
             }
         }
     }
-    const x = Math.floor(pos.x);
-    const y = Math.floor(pos.y);
-    const z = Math.floor(pos.z);
-
-    if (typeof sendBlock === 'function') sendBlock({ action: 'remove', x, y, z });
-
-} else if (hit.object.userData && hit.object.userData.type) {
-    // Fallback for non-instanced objects (like old water meshes if clickable)
-    const { x, y, z } = hit.object.userData;
-    world.removeBlock(hit.object);
-    if (typeof sendBlock === 'function') sendBlock({ action: 'remove', x, y, z });
-}
-        } else if (e.button === 2) { // Right Click - Place / Spawn
-    const norm = hit.face.normal;
-    let pos;
-
-    if (hit.object.isInstancedMesh) {
-        const matrix = new THREE.Matrix4();
-        hit.object.getMatrixAt(hit.instanceId, matrix);
-        pos = new THREE.Vector3().setFromMatrixPosition(matrix).add(norm);
-    } else {
-        pos = hit.object.position.clone().add(norm);
-    }
-
-    // Don't place inside player
-    const pPos = camera.position;
-    const dx = Math.abs(pos.x - pPos.x);
-    const dy = Math.abs(pos.y - pPos.y);
-    const dz = Math.abs(pos.z - pPos.z);
-    if (dx < 0.8 && dy < 1.8 && dz < 0.8) return;
-
-    if (types[selectedSlot] && types[selectedSlot].includes('bait')) {
-        // Remove 'bait' suffix to get mob type
-        const mobType = types[selectedSlot].replace('bait', '');
-        spawnMob(mobType, pos.x, pos.y + 1, pos.z);
-        return;
-    }
-
-    const type = types[selectedSlot];
-    if (!type) return;
-
-    const bx = Math.floor(pos.x);
-    const by = Math.floor(pos.y);
-    const bz = Math.floor(pos.z);
-
-    // Prevent building on Mobs (Ulrich check, but applies to all)
-    let blockedByMob = false;
-    for (let m of mobs) {
-        if (m.position.distanceTo(pos) < 1.0) {
-            blockedByMob = true;
-            break;
-        }
-    }
-    if (blockedByMob) return; // Cannot place
-
-    world.placeBlock(bx, by, bz, type);
-    if (typeof sendBlock === 'function') sendBlock({ action: 'place', x: bx, y: by, z: bz, type: type });
-}
-else if (e.button === 1) { // Middle Click - Attack Mob (Raycast separately or check objects)
-    // Handled below for Mob Interaction
-}
-    }
-
-
 });
 
 
