@@ -94,12 +94,19 @@ document.addEventListener('keydown', (e) => {
 });
 
 // Prevent Browser Shortcuts (Ctrl+S, Ctrl+W)
+// Prevent Browser Shortcuts (Ctrl+S, Ctrl+W, Ctrl+D)
 window.addEventListener('keydown', (e) => {
-    if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'w' || e.key === 'S' || e.key === 'W')) {
+    if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'w' || e.key === 'd' || e.key === 'S' || e.key === 'W' || e.key === 'D')) {
         e.preventDefault();
-        // console.log("Shortcut blocked");
+        e.stopPropagation();
     }
 }, { passive: false });
+
+// Prevent Tab Close (Ctrl+W safety)
+window.addEventListener('beforeunload', (e) => {
+    e.preventDefault();
+    e.returnValue = ''; // Required for some browsers
+});
 
 document.addEventListener('wheel', (e) => {
     if (e.deltaY > 0) selectedSlot = (selectedSlot + 1) % 9;

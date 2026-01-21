@@ -264,4 +264,124 @@ export class Mob {
         }
         if (axis === 'y' && this.velocity.y < 0) this.onGround = false; // logic check
     }
+
+    createModel(type) {
+        // Simple Box Models for now, but distinct colors/shapes
+        const material = new THREE.MeshStandardMaterial();
+        let geometry;
+
+        if (type === 'ceca') {
+            // Pig-like
+            geometry = new THREE.BoxGeometry(0.6, 0.6, 1.0);
+            material.color.setHex(0xffaaaa); // Pink
+            // Face
+            const textureLoader = new THREE.TextureLoader();
+            textureLoader.load('textures/ceca.png', (tex) => {
+                const mat = new THREE.MeshStandardMaterial({ map: tex });
+                const face = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.5), mat);
+                face.position.set(0, 0, 0.51);
+                this.group.add(face);
+            });
+        } else if (type === 'bohy') {
+            // Cow-like
+            geometry = new THREE.BoxGeometry(0.7, 1.0, 1.2);
+            material.color.setHex(0x553311); // Brown
+        } else if (type === 'kohoutek') {
+            // Chicken-like
+            geometry = new THREE.BoxGeometry(0.4, 0.6, 0.4);
+            material.color.setHex(0xffffff); // White
+        } else if (type === 'ulrich') {
+            // Wolf-like
+            geometry = new THREE.BoxGeometry(0.5, 0.6, 1.0);
+            material.color.setHex(0xaaaaaa); // Grey
+
+            // Body container for tail wag
+            this.body = new THREE.Group();
+            this.group.add(this.body);
+            const bodyMesh = new THREE.Mesh(geometry, material);
+            this.body.add(bodyMesh);
+
+            // Tail
+            const tailGeo = new THREE.BoxGeometry(0.2, 0.2, 0.6);
+            const tail = new THREE.Mesh(tailGeo, material);
+            tail.position.set(0, 0.2, -0.6);
+            this.body.add(tail);
+            return; // Special construction
+        } else {
+            geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+            material.color.setHex(0xff0000); // Error red
+        }
+
+        const mesh = new THREE.Mesh(geometry, material);
+        this.group.add(mesh);
+
+        // Legs (Generic 4 legs)
+        this.legs = [];
+        const legGeo = new THREE.BoxGeometry(0.15, 0.4, 0.15);
+        const legMat = material.clone();
+
+        const legPositions = [
+            [-0.2, -0.5, 0.3], [0.2, -0.5, 0.3],
+            [-0.2, -0.5, -0.3], [0.2, -0.5, -0.3]
+        ];
+
+        if (type === 'kohoutek') {
+            // 2 Legs
+            legPositions.length = 2;
+            legPositions[0] = [-0.1, -0.3, 0];
+            legPositions[1] = [0.1, -0.3, 0];
+        }
+
+        legPositions.forEach(pos => {
+            const leg = new THREE.Mesh(legGeo, legMat);
+            leg.position.set(...pos);
+            this.group.add(leg);
+            this.legs.push(leg);
+        });
+    }
+
+    flashRed() {
+        this.group.traverse(child => {
+            if (child.isMesh && child.material) {
+                const oldColor = child.material.color.getHex();
+                child.material.color.setHex(0xff0000);
+                setTimeout(() => {
+                    if (child.material) child.material.color.setHex(oldColor);
+                }, 200);
+            }
+        });
+    }
+
+    die() {
+        this.isDead = true;
+
+        // Play sound
+        const sound = new Audio('sounds/died.mp3');
+        sound.volume = 0.5;
+        sound.play().catch(e => console.warn("Audio play failed", e));
+
+        // Animation: Tip over
+        const startRot = this.group.rotation.x;
+        const startTime = performance.now();
+
+        const animateDeath = () => {
+            const elapsed = (performance.now() - startTime) / 1000;
+            if (elapsed > 1.0) {
+                this.scene.remove(this.group);
+                this.world.removeFromUpdate(this); // Assuming world has list? No, main.js has list.
+                // Actually relying on main.js to filter out dead or garbage collect
+                return;
+            }
+
+            // Tip over 90 deg (PI/2)
+            this.group.rotation.z = Math.min(Math.PI / 2, elapsed * Math.PI);
+            this.group.position.y -= 0.01;
+
+            requestAnimationFrame(animateDeath);
+        };
+        animateDeath();
+
+        // Remove from main list done via filter in update loop usually?
+        // main.js: const mobs = []; ... checks if !m.isDead
+    }
 }
