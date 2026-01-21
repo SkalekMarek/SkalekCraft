@@ -172,6 +172,11 @@ export class Player {
         if (this.input.crouch) targetFOV = 70;
         this.camera.fov += (targetFOV - this.camera.fov) * 5 * delta;
         this.camera.updateProjectionMatrix();
+
+        // STRICT SAFETY: Force Up vector and Zero Roll every frame
+        this.camera.up.set(0, 1, 0);
+        this.camera.rotation.z = 0;
+
     }
 
     checkIfInWater() {

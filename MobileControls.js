@@ -178,7 +178,7 @@ export class MobileControls {
                     const dx = t.clientX - lookStartX;
                     const dy = t.clientY - lookStartY;
 
-                    this.player.rotateCamera(dx * 4, dy * 4); // Multiplier for sensitivity
+                    this.player.rotateCamera(dx * 2, dy * 2); // Multiplier for sensitivity
 
                     lookStartX = t.clientX;
                     lookStartY = t.clientY;
