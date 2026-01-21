@@ -261,6 +261,26 @@ export class Mob {
             bodyMesh.position.y = bodyOffset + height / 2;
             this.group.add(bodyMesh);
 
+            // Spots (Cow)
+            const spotMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            const spotGeo1 = new THREE.PlaneGeometry(0.3, 0.3);
+            const spot1 = new THREE.Mesh(spotGeo1, spotMat);
+            spot1.position.set(width / 2 + 0.01, 0, 0.2); // Right side
+            spot1.rotation.y = Math.PI / 2;
+            bodyMesh.add(spot1);
+
+            const spotGeo2 = new THREE.PlaneGeometry(0.25, 0.25);
+            const spot2 = new THREE.Mesh(spotGeo2, spotMat);
+            spot2.position.set(-width / 2 - 0.01, 0.2, -0.3); // Left side
+            spot2.rotation.y = -Math.PI / 2;
+            bodyMesh.add(spot2);
+
+            const spotGeo3 = new THREE.PlaneGeometry(0.2, 0.2);
+            const spot3 = new THREE.Mesh(spotGeo3, spotMat);
+            spot3.position.set(0.1, height / 2 + 0.01, -0.4); // Top
+            spot3.rotation.x = -Math.PI / 2;
+            bodyMesh.add(spot3);
+
             // Horns (Cow)
             const hornGeo = new THREE.BoxGeometry(0.1, 0.25, 0.1);
             const hornMat = new THREE.MeshBasicMaterial({ color: 0xcccccc });
