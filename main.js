@@ -93,6 +93,14 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
+// Prevent Browser Shortcuts (Ctrl+S, Ctrl+W)
+window.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'w' || e.key === 'S' || e.key === 'W')) {
+        e.preventDefault();
+        // console.log("Shortcut blocked");
+    }
+}, { passive: false });
+
 document.addEventListener('wheel', (e) => {
     if (e.deltaY > 0) selectedSlot = (selectedSlot + 1) % 9;
     else selectedSlot = (selectedSlot - 1 + 9) % 9;

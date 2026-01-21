@@ -213,6 +213,8 @@ canvas {
     align-items: center;
     z-index: 200;
     color: white;
+    cursor: default;
+    /* Ensure cursor is visible */
 }
 
 #menu-logo {
