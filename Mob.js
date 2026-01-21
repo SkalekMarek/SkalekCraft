@@ -334,82 +334,8 @@ export class Mob {
         ];
 
         if (type === 'kohoutek') {
-            legPositions = [[-0.1, -0.3, 0], [0.1, -0.3, 0]];
-        }
-
-        legPositions.forEach(pos => {
-            const leg = new THREE.Mesh(legGeo, legMat);
-            leg.position.set(...pos);
-            this.group.add(leg);
-            this.legs.push(leg);
-        });
-    }
-
-    createModel(type) {
-        // Simple Box Models for now, but distinct colors/shapes
-        const material = new THREE.MeshStandardMaterial();
-        let geometry;
-
-        if (type === 'ceca') {
-            // Pig-like
-            geometry = new THREE.BoxGeometry(0.6, 0.6, 1.0);
-            material.color.setHex(0xffaaaa); // Pink
-            // Face
-            const textureLoader = new THREE.TextureLoader();
-            textureLoader.load('textures/ceca.png', (tex) => {
-                const mat = new THREE.MeshStandardMaterial({ map: tex });
-                const face = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.5), mat);
-                face.position.set(0, 0, 0.51);
-                this.group.add(face);
-            });
-        } else if (type === 'bohy') {
-            // Cow-like
-            geometry = new THREE.BoxGeometry(0.7, 1.0, 1.2);
-            material.color.setHex(0x553311); // Brown
-        } else if (type === 'kohoutek') {
-            // Chicken-like
-            geometry = new THREE.BoxGeometry(0.4, 0.6, 0.4);
-            material.color.setHex(0xffffff); // White
-        } else if (type === 'ulrich') {
-            // Wolf-like
-            geometry = new THREE.BoxGeometry(0.5, 0.6, 1.0);
-            material.color.setHex(0xaaaaaa); // Grey
-
-            // Body container for tail wag
-            this.body = new THREE.Group();
-            this.group.add(this.body);
-            const bodyMesh = new THREE.Mesh(geometry, material);
-            this.body.add(bodyMesh);
-
-            // Tail
-            const tailGeo = new THREE.BoxGeometry(0.2, 0.2, 0.6);
-            const tail = new THREE.Mesh(tailGeo, material);
-            tail.position.set(0, 0.2, -0.6);
-            this.body.add(tail);
-            return; // Special construction
-        } else {
-            geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
-            material.color.setHex(0xff0000); // Error red
-        }
-
-        const mesh = new THREE.Mesh(geometry, material);
-        this.group.add(mesh);
-
-        // Legs (Generic 4 legs)
-        this.legs = [];
-        const legGeo = new THREE.BoxGeometry(0.15, 0.4, 0.15);
-        const legMat = material.clone();
-
-        const legPositions = [
-            [-0.2, -0.5, 0.3], [0.2, -0.5, 0.3],
-            [-0.2, -0.5, -0.3], [0.2, -0.5, -0.3]
-        ];
-
-        if (type === 'kohoutek') {
             // 2 Legs
-            legPositions.length = 2;
-            legPositions[0] = [-0.1, -0.3, 0];
-            legPositions[1] = [0.1, -0.3, 0];
+            legPositions = [[-0.1, -0.3, 0], [0.1, -0.3, 0]];
         }
 
         legPositions.forEach(pos => {
