@@ -59,8 +59,8 @@ function spawnMob(type, x, y, z, id = null, isRemote = false) {
         const m = new Mob(scene, world, new THREE.Vector3(x, y, z), type, mobId, isRemote);
         mobs.push(m);
 
-        // If local, broadcast spawn
-        if (!isRemote) {
+        // If local, broadcast spawn (only if network is ready)
+        if (!isRemote && typeof sendMobSpawn === 'function') {
             sendMobSpawn({
                 type: type,
                 x: x,
