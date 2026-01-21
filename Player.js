@@ -4,6 +4,7 @@ import { PointerLockControls } from 'three/addons/controls/PointerLockControls.j
 export class Player {
     constructor(camera, domElement, world) {
         this.camera = camera;
+        this.camera.rotation.order = 'YXZ'; // Important for FPS camera to avoid roll
         this.world = world;
         this.controls = new PointerLockControls(camera, domElement);
 
@@ -213,7 +214,11 @@ export class Player {
         this.camera.rotation.y -= movementX * sensitivity;
         this.camera.rotation.x -= movementY * sensitivity;
 
-        // Clamp pitch
-        this.camera.rotation.x = Math.max(- Math.PI / 2, Math.min(Math.PI / 2, this.camera.rotation.x));
+        // Clamp pitch to avoid gimbal lock or flipping (slightly less than PI/2)
+        const maxPitch = Math.PI / 2 - 0.01;
+        this.camera.rotation.x = Math.max(-maxPitch, Math.min(maxPitch, this.camera.rotation.x));
+
+        // Prevent roll
+        this.camera.rotation.z = 0;
     }
 }
