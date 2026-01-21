@@ -13,12 +13,8 @@ export class MobileControls {
     }
 
     detectMobile() {
-        // Simple check: User Agent OR Screen Size + Touch
-        const isTouch = (('ontouchstart' in window) || (navigator.maxTouchPoints > 0));
-        const isSmallScreen = window.innerWidth <= 1024; // Covers most tablets too
-
-        // Debug override: Remove 'false &&' to force test on PC if needed
-        return isTouch || isSmallScreen;
+        const ua = navigator.userAgent;
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
     }
 
     createOverlay() {
