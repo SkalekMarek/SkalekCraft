@@ -10,7 +10,19 @@
 </head>
 
 <body>
-    <div id="ui">
+    <div id="menu-screen">
+        <img id="menu-logo" src="textures/logo.png" alt="SkalekCraft">
+        <div id="main-menu-content">
+            <button id="btn-singleplayer" class="menu-btn">Singleplayer</button>
+            <button id="btn-multiplayer" class="menu-btn">Multiplayer</button>
+        </div>
+        <div id="lobby-content" class="hidden">
+            <input type="text" id="username-input" class="menu-input" placeholder="Enter Username" maxlength="12">
+            <button id="btn-connect" class="menu-btn">Start</button>
+            <div id="waiting-message" class="hidden">Waiting for other players...</div>
+        </div>
+    </div>
+    <div id="ui" class="hidden">
         <div id="crosshair"></div>
         <div id="hotbar">
             <div class="slot active">
