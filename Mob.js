@@ -143,10 +143,7 @@ export class Mob {
                 this.legs[3].rotation.x = Math.sin(time * walkSpeed) * 0.5;
             }
             if (this.type === 'ulrich') {
-                // Ulrich tail is child 1 of 'this.body', which is child 0 of group?
-                // Let's traverse simply:
                 if (this.body && this.body.children.length > 1) {
-                    // Tail is added as child 1 of body
                     this.body.children[1].rotation.y = Math.sin(time * 15) * 0.3;
                 }
             }
@@ -216,13 +213,10 @@ export class Mob {
     }
 
     createModel(type) {
-        // Use MeshBasicMaterial to ensure visibility
         const material = new THREE.MeshBasicMaterial();
         let geometry;
         let bodyMesh;
 
-        // "Feet" level is 0.
-        // Leg height default 0.4
         const legH = (type === 'kohoutek') ? 0.2 : 0.4;
         const bodyOffset = legH;
 
@@ -236,12 +230,26 @@ export class Mob {
             bodyMesh.position.y = bodyOffset + height / 2;
             this.group.add(bodyMesh);
 
+            // Tail (Pig)
+            const tail = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.1), material);
+            tail.position.set(0, -height / 4, -depth / 2 - 0.05); // Low back
+            bodyMesh.add(tail);
+
+            // Ears (Pig)
+            const earGeo = new THREE.BoxGeometry(0.2, 0.2, 0.05);
+            const leftEar = new THREE.Mesh(earGeo, material);
+            leftEar.position.set(-0.35, 0.35, 0.3);
+            bodyMesh.add(leftEar);
+            const rightEar = new THREE.Mesh(earGeo, material);
+            rightEar.position.set(0.35, 0.35, 0.3);
+            bodyMesh.add(rightEar);
+
             const textureLoader = new THREE.TextureLoader();
             textureLoader.load('textures/ceca.png', (tex) => {
                 const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true });
                 const face = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.5), mat);
-                face.position.set(0, bodyMesh.position.y, depth / 2 + 0.01);
-                this.group.add(face);
+                face.position.set(0, 0, depth / 2 + 0.01);
+                bodyMesh.add(face);
             });
         } else if (type === 'bohy') {
             // Cow
@@ -253,12 +261,30 @@ export class Mob {
             bodyMesh.position.y = bodyOffset + height / 2;
             this.group.add(bodyMesh);
 
+            // Horns (Cow)
+            const hornGeo = new THREE.BoxGeometry(0.1, 0.25, 0.1);
+            const hornMat = new THREE.MeshBasicMaterial({ color: 0xcccccc });
+            const leftHorn = new THREE.Mesh(hornGeo, hornMat);
+            leftHorn.position.set(-0.3, 0.6, 0.55);
+            bodyMesh.add(leftHorn);
+
+            const rightHorn = new THREE.Mesh(hornGeo, hornMat);
+            rightHorn.position.set(0.3, 0.6, 0.55);
+            bodyMesh.add(rightHorn);
+
+            // Tail (Cow)
+            const tailGeo = new THREE.BoxGeometry(0.1, 0.5, 0.1);
+            const tail = new THREE.Mesh(tailGeo, material);
+            tail.position.set(0, 0.2, -depth / 2 - 0.05);
+            tail.rotation.x = 0.2;
+            bodyMesh.add(tail);
+
             const textureLoader = new THREE.TextureLoader();
             textureLoader.load('textures/bohy.png', (tex) => {
                 const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true });
                 const face = new THREE.Mesh(new THREE.PlaneGeometry(0.6, 0.6), mat);
-                face.position.set(0, bodyMesh.position.y + 0.2, depth / 2 + 0.01);
-                this.group.add(face);
+                face.position.set(0, 0.2, depth / 2 + 0.01);
+                bodyMesh.add(face);
             });
         } else if (type === 'kohoutek') {
             // Chicken
@@ -274,8 +300,8 @@ export class Mob {
             textureLoader.load('textures/kohoutek.png', (tex) => {
                 const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true });
                 const face = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 0.3), mat);
-                face.position.set(0, bodyMesh.position.y + 0.1, depth / 2 + 0.01);
-                this.group.add(face);
+                face.position.set(0, 0.1, depth / 2 + 0.01);
+                bodyMesh.add(face);
             });
         } else if (type === 'ulrich') {
             // Wolf
@@ -315,7 +341,7 @@ export class Mob {
         this.legs = [];
         const legGeo = new THREE.BoxGeometry(0.15, legH, 0.15);
         const legMat = material.clone();
-        legMat.color.setHex(material.color.getHex() * 0.8);
+        legMat.color.multiplyScalar(0.8); // Proper darkening
 
         let legPositions = [
             [-0.2, legH / 2, 0.3], [0.2, legH / 2, 0.3],
