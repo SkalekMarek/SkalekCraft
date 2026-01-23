@@ -70,6 +70,7 @@ export class World {
             mesh.count = 0;
             mesh.name = type;
             mesh.userData = { isWorldBlock: true, type: type };
+            mesh.frustumCulled = false; // Fix for raycasting stopping after initial bounds
             this.scene.add(mesh);
             this.instancedMeshes[type] = mesh;
             this.objects.push(mesh);
