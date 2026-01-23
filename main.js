@@ -454,6 +454,8 @@ function removeRemotePlayer(id) {
 
 // --- LOOP ---
 let prevTime = performance.now();
+let lastFpsTime = prevTime;
+let frames = 0;
 const broadcastRate = 50; // ms (20 times/sec)
 let lastBroadcast = 0;
 
@@ -463,7 +465,17 @@ function animate() {
     requestAnimationFrame(animate);
     const time = performance.now();
     const delta = Math.min((time - prevTime) / 1000, 0.1);
+
+    // FPS Counter
+    frames++;
+    if (time > lastFpsTime + 1000) {
+        document.getElementById('fps-counter').innerText = `FPS: ${Math.round((frames * 1000) / (time - lastFpsTime))}`;
+        lastFpsTime = time;
+        frames = 0;
+    }
+
     prevTime = time;
+
 
     player.update(delta);
 

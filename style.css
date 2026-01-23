@@ -81,6 +81,19 @@ canvas {
     color: gold;
 }
 
+#fps-counter {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    color: #eee;
+    font-family: 'Minecraft', sans-serif;
+    font-size: 14px;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 2px 5px;
+    pointer-events: none;
+    text-shadow: 1px 1px 0 #000;
+}
+
 
 
 
