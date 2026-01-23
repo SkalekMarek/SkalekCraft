@@ -265,11 +265,12 @@ window.addEventListener('mousedown', (e) => {
                 // Actually spawnMob sets it at x,y,z. If pos is the air block above ground, that's perfect.
             } else {
                 // Place Block
-                world.addBlock(pos.x, pos.y, pos.z, type);
+                world.placeBlock(pos.x, pos.y, pos.z, type);
                 if (typeof sendBlockUpdate === 'function') {
                     sendBlockUpdate({ x: pos.x, y: pos.y, z: pos.z, type: type });
                 }
             }
+
         }
     }
 });
