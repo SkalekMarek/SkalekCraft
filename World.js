@@ -280,7 +280,8 @@ export class World {
             }
         }
 
-        document.getElementById('block-count').innerText = `Blocks: ${this.blocks.size} (Instanced)`;
+        // document.getElementById('block-count').innerText = `Blocks: ${this.blocks.size} (Instanced)`; // Removed UI
+
     }
 
     generateTree(x, y, z) {

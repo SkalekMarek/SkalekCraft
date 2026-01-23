@@ -328,7 +328,8 @@ function initMultiplayer(username) {
 
         // Wait a split second to ensure connection is stable before sending
         setTimeout(() => {
-            updatePlayerCount(); // Reset to normal count
+            // updatePlayerCount(); // Removed UI
+
             // Send my current position to the new peer immediately so they see me
             const p = player.camera.position;
             sendMove({ x: p.x, y: p.y, z: p.z, ry: player.camera.rotation.y }, peerId);
@@ -352,7 +353,8 @@ function initMultiplayer(username) {
     room.onPeerLeave(peerId => {
         console.log(`${peerId} left`);
         removeRemotePlayer(peerId);
-        updatePlayerCount();
+        // updatePlayerCount(); // Removed UI
+
     });
 
     // 2. Movement Updates
@@ -416,10 +418,11 @@ try {
 
 const remotePlayers = {};
 
-function updatePlayerCount(statusOverride) {
-    const count = Object.keys(remotePlayers).length + 1;
-    document.getElementById('player-count').innerText = `Players: ${count}`;
-}
+// function updatePlayerCount(statusOverride) {
+//     const count = Object.keys(remotePlayers).length + 1;
+//     document.getElementById('player-count').innerText = `Players: ${count}`;
+// }
+
 
 
 function addRemotePlayer(id) {
