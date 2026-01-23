@@ -231,19 +231,39 @@ window.addEventListener('mousedown', (e) => {
             if (hit.object.isInstancedMesh) {
                 const matrix = new THREE.Matrix4();
                 hit.object.getMatrixAt(hit.instanceId, matrix);
-                pos = new THREE.Vector3().setFromMatrixPosition(matrix).add(hit.face.normal);
+                const instancePos = new THREE.Vector3().setFromMatrixPosition(matrix);
+                pos = new THREE.Vector3(
+                    Math.floor(instancePos.x),
+                    Math.floor(instancePos.y),
+                    Math.floor(instancePos.z)
+                ).add(hit.face.normal);
             } else {
-                pos = hit.object.position.clone().add(hit.face.normal);
+                const objPos = hit.object.position.clone();
+                pos = new THREE.Vector3(
+                    Math.floor(objPos.x),
+                    Math.floor(objPos.y),
+                    Math.floor(objPos.z)
+                ).add(hit.face.normal);
             }
 
-            // Don't place inside player
-            const pPos = camera.position;
-            // Better: use player.position (feet) and check bounds
-            // Simple distance check from camera (head)
-            if (pos.distanceTo(camera.position) < 1.0) return;
+            // Don't place inside player (Box Collision)
+            const blockBox = new THREE.Box3().setFromCenterAndSize(
+                new THREE.Vector3(pos.x + 0.5, pos.y + 0.5, pos.z + 0.5),
+                new THREE.Vector3(0.9, 0.9, 0.9)
+            );
+
+            // Player Box (Approximate based on camera)
+            const playerPos = camera.position.clone();
+            const playerBox = new THREE.Box3();
+            // Player is ~1.8 tall, camera is near top (eyes)
+            playerBox.min.set(playerPos.x - 0.3, playerPos.y - 1.6, playerPos.z - 0.3);
+            playerBox.max.set(playerPos.x + 0.3, playerPos.y + 0.1, playerPos.z + 0.3);
+
+            if (blockBox.intersectsBox(playerBox)) return;
 
             // Check Mob Obstruction
             let bad = false;
+
             const placeBox = new THREE.Box3().setFromCenterAndSize(pos, new THREE.Vector3(0.9, 0.9, 0.9));
             for (let m of mobs) {
                 const mobBox = new THREE.Box3().setFromObject(m.group);
