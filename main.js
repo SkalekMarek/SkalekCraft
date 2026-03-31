@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { World } from './World.js?v=16';
 import { Player } from './Player.js';
-import { Mob } from './Mob.js?v=11';
+import { Mob } from './Mob.js?v=13';
 import { MobileControls } from './MobileControls.js';
 
 
@@ -173,7 +173,7 @@ window.addEventListener('mousedown', (e) => {
         // 3. Decide priority (Closest wins, with preference to Mobs if very close)
         if (hitMob && (!hitBlock || hitMob.distance < hitBlock.distance)) {
             // ATTACK MOB
-            hitMob.mob.takeDamage(1, player.position);
+            hitMob.mob.takeDamage(1, player.camera.position);
 
             if (hitMob.mob.health <= 0) {
                 if (typeof sendMobDeath === 'function') sendMobDeath({ id: hitMob.mob.id });
