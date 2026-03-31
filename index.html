@@ -13,13 +13,7 @@
     <div id="menu-screen">
         <img id="menu-logo" src="textures/logo.png" alt="SkalekCraft">
         <div id="main-menu-content">
-            <button id="btn-singleplayer" class="menu-btn">Singleplayer</button>
-            <button id="btn-multiplayer" class="menu-btn">Multiplayer</button>
-        </div>
-        <div id="lobby-content" class="hidden">
-            <input type="text" id="username-input" class="menu-input" placeholder="Enter Username" maxlength="12">
-            <button id="btn-connect" class="menu-btn">Start</button>
-            <div id="waiting-message" class="hidden">Waiting for other players...</div>
+            <button id="btn-play" class="menu-btn">Play</button>
         </div>
     </div>
     <div id="ui" class="hidden">
@@ -58,13 +52,12 @@
         <div id="fps-counter">FPS: 0</div>
     </div>
 
-    <!-- Import Map for Three.js and Trystero -->
+    <!-- Import Map for Three.js -->
     <script type="importmap">
         {
             "imports": {
                 "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
-                "trystero": "https://esm.sh/trystero@0.19.0/torrent"
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
             }
         }
     </script>

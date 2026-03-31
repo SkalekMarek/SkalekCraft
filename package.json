@@ -17,8 +17,5 @@
     "url": "https://github.com/SkalekMarek/SkalekCraft/issues"
   },
   "homepage": "https://github.com/SkalekMarek/SkalekCraft#readme",
-  "dependencies": {
-    "express": "^5.2.1",
-    "socket.io": "^4.8.3"
-  }
+  "dependencies": {}
 }

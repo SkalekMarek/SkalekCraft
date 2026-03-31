@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 export class Mob {
-    constructor(scene, world, position, type = 'ceca', id = null, isRemote = false) {
+    constructor(scene, world, position, type = 'ceca') {
         this.scene = scene;
         this.world = world;
         this.type = type;
@@ -10,12 +10,6 @@ export class Mob {
         this.onGround = false;
         this.isDead = false;
         this.health = 3; // 3 Hits
-
-        // Multiplayer
-        this.id = id || crypto.randomUUID(); // Unique ID for sync
-        this.isRemote = isRemote;
-        this.targetPos = this.position.clone(); // For interpolation
-        this.targetRot = 0;
 
         // Visuals
         this.group = new THREE.Group();
@@ -32,47 +26,18 @@ export class Mob {
         this.health -= amount;
         this.flashRed();
 
-        if (!this.isRemote) {
-            const recoil = this.position.clone().sub(attackerPos).normalize();
-            recoil.y = 0.5;
-            this.velocity.add(recoil.multiplyScalar(15));
-            this.onGround = false;
-        }
+        const recoil = this.position.clone().sub(attackerPos).normalize();
+        recoil.y = 0.5;
+        this.velocity.add(recoil.multiplyScalar(15));
+        this.onGround = false;
 
         if (this.health <= 0) {
             this.die();
         }
     }
 
-    updateRemote(x, y, z, ry) {
-        this.targetPos.set(x, y, z);
-        this.targetRot = ry;
-    }
-
     update(delta, playerPos, isHoldingBait) {
         if (this.isDead) return;
-
-        if (this.isRemote) {
-            // INTERPOLATION for remote mobs
-            this.position.lerp(this.targetPos, 10 * delta);
-            this.group.position.copy(this.position);
-            this.group.rotation.y += (this.targetRot - this.group.rotation.y) * 10 * delta;
-
-            const dist = this.position.distanceTo(this.targetPos);
-            if (dist > 0.1 || Math.abs(this.group.rotation.y - this.targetRot) > 0.1) {
-                const time = performance.now() / 1000;
-                const walkSpeed = 10;
-                if (this.legs && this.legs.length >= 4) {
-                    this.legs[0].rotation.x = Math.sin(time * walkSpeed) * 0.5;
-                    this.legs[1].rotation.x = Math.sin(time * walkSpeed + Math.PI) * 0.5;
-                    this.legs[2].rotation.x = Math.sin(time * walkSpeed + Math.PI) * 0.5;
-                    this.legs[3].rotation.x = Math.sin(time * walkSpeed) * 0.5;
-                }
-            } else {
-                if (this.legs) this.legs.forEach(l => l.rotation.x = 0);
-            }
-            return;
-        }
 
         // --- LOCAL LOGIC BELOW ---
         this.velocity.y -= 25 * delta;
