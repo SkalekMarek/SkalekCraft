@@ -287,7 +287,6 @@ try {
 let prevTime = performance.now();
 let lastFpsTime = prevTime;
 let frames = 0;
-let frames = 0;
 
 function animate() {
     if (!gameStarted) return; // Logic pause
