@@ -313,6 +313,13 @@ function animate() {
     // Pass the item name directly so mob can check if it's the right bait
     mobs.forEach(m => m.update(delta, player.camera.position, currentItem));
 
+    // Cleanup dead mobs from memory
+    for (let i = mobs.length - 1; i >= 0; i--) {
+        if (mobs[i].isMarkedForRemoval) {
+            mobs.splice(i, 1);
+        }
+    }
+
     renderer.render(scene, camera);
 }
 

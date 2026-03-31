@@ -359,7 +359,7 @@ export class Mob {
 
     die() {
         this.isDead = true;
-        const sound = new Audio('sounds/died.mp3');
+        const sound = new Audio('died.mp3');
         sound.volume = 0.5;
         sound.play().catch(e => console.warn("Audio play failed", e));
 
@@ -368,7 +368,7 @@ export class Mob {
             const elapsed = (performance.now() - startTime) / 1000;
             if (elapsed > 1.0) {
                 this.scene.remove(this.group);
-                this.world.removeFromUpdate(this);
+                this.isMarkedForRemoval = true;
                 return;
             }
             this.group.rotation.z = Math.min(Math.PI / 2, elapsed * Math.PI);
